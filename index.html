@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donaciones · Streaming CEC Liceo Militar</title>
+  <meta name="description" content="Ayudanos a mejorar la transmisión en vivo de los partidos de rugby del CEC Liceo Militar. Mirá lo que necesitamos, cuánto sale y cómo donar." />
+
+  <!-- Redes sociales -->
+  <meta property="og:title" content="Donaciones · Streaming CEC Liceo Militar" />
+  <meta property="og:description" content="Ayudanos a mejorar la transmisión en vivo de los partidos del Liceo. Seguí la meta en tiempo real." />
+  <meta property="og:type" content="website" />
+
+  <link rel="icon" type="image/png" href="assets/escudo.png" />
+
+  <!-- Tipografías (si no cargan, usa las del sistema) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ================= NAV ================= -->
+  <header class="nav" id="top">
+    <div class="nav__inner">
+      <a class="nav__brand" href="#top">
+        <img src="assets/escudo.png" alt="Escudo CEC Liceo Militar" class="nav__logo" />
+        <span class="nav__name">CEC Liceo Militar<small>Streaming del club</small></span>
+      </a>
+      <nav class="nav__links">
+        <a href="#meta">La meta</a>
+        <a href="#mejoras">Las mejoras</a>
+        <a href="#donar">Cómo donar</a>
+      </nav>
+      <a href="#donar" class="btn btn--gold nav__cta">Donar</a>
+    </div>
+  </header>
+
+  <!-- ================= HERO ================= -->
+  <section class="hero">
+    <div class="hero__glow" aria-hidden="true"></div>
+    <div class="hero__inner">
+      <div class="hero__copy">
+        <span class="eyebrow" id="hero-eyebrow"></span>
+        <h1 id="hero-title"></h1>
+        <p class="hero__lead" id="hero-lead"></p>
+        <div class="hero__actions">
+          <a href="#donar" class="btn btn--gold btn--lg">💛 Quiero donar</a>
+          <a href="#mejoras" class="btn btn--ghost btn--lg">Ver qué se necesita</a>
+        </div>
+      </div>
+
+      <!-- Tarjeta de META EN VIVO -->
+      <aside class="meta-card" id="meta">
+        <div class="meta-card__head">
+          <span class="live"><span class="live__dot"></span>EN VIVO</span>
+          <span class="meta-card__updated" id="meta-updated">Actualizando…</span>
+        </div>
+
+        <div class="meta-card__amount">
+          <span class="meta-card__raised" id="meta-raised">$0</span>
+          <span class="meta-card__goal">de <b id="meta-goal">$0</b></span>
+        </div>
+
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar">
+          <div class="bar__fill" id="bar-fill"><span class="bar__shine"></span></div>
+        </div>
+
+        <div class="meta-card__stats">
+          <div class="stat"><b id="meta-percent">0%</b><span>de la meta</span></div>
+          <div class="stat"><b id="meta-donors">0</b><span>donantes</span></div>
+          <div class="stat"><b id="meta-remaining">$0</b><span>faltan</span></div>
+        </div>
+
+        <a href="#donar" class="btn btn--gold btn--block">Sumate a la meta</a>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= POR QUÉ ================= -->
+  <section class="section porque">
+    <div class="wrap">
+      <h2 class="section__title">¿Para qué es tu ayuda?</h2>
+      <p class="section__sub">Un mejor streaming es más familia del Liceo disfrutando cada partido.</p>
+      <div class="grid grid--3" id="porque-grid"></div>
+    </div>
+  </section>
+
+  <!-- ================= MEJORAS ================= -->
+  <section class="section section--alt" id="mejoras">
+    <div class="wrap">
+      <h2 class="section__title">Qué necesitamos y cuánto sale</h2>
+      <p class="section__sub">Cada mejora suma a una transmisión más profesional. Estos son los equipos que buscamos.</p>
+      <div class="grid grid--cards" id="mejoras-grid"></div>
+      <div class="mejoras__total">
+        <span>Objetivo total de la campaña</span>
+        <b id="mejoras-total">$0</b>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CÓMO DONAR ================= -->
+  <section class="section donar" id="donar">
+    <div class="wrap">
+      <h2 class="section__title">Cómo donar</h2>
+      <p class="section__sub">Elegí la forma que más te convenga. Todo aporte, por chico que sea, suma. 💛</p>
+      <div class="grid grid--2" id="donar-grid"></div>
+    </div>
+  </section>
+
+  <!-- ================= TRANSPARENCIA ================= -->
+  <section class="section section--alt">
+    <div class="wrap wrap--narrow">
+      <h2 class="section__title">Transparencia</h2>
+      <ul class="transparencia" id="transparencia-list"></ul>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <div class="footer__brand">
+        <img src="assets/escudo.png" alt="Escudo CEC Liceo Militar" />
+        <div>
+          <b id="footer-club">CEC Liceo Militar</b>
+          <span id="footer-club-long"></span>
+        </div>
+      </div>
+      <div class="footer__links" id="footer-social"></div>
+      <p class="footer__note">
+        Campaña solidaria de la comunidad del Liceo para mejorar el streaming del club.
+        Hecho con 💛💙 por la familia rugbier.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Aviso flotante para copiar alias -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
