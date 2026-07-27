@@ -16,7 +16,8 @@ puede publicar gratis en **GitHub Pages**.
 | `index.html`   | La página. Normalmente no hace falta tocarla. |
 | `styles.css`   | Los estilos y colores. |
 | `app.js`       | Arma la página y actualiza la meta. No hace falta tocarlo. |
-| **`data.js`**  | **El contenido:** mejoras, costos, textos y datos para donar. |
+| **`admin.html`** | **Panel de carga:** editás todo desde el navegador y descargás los archivos. |
+| **`data.json`**| **El contenido:** mejoras, fotos, costos, textos y datos para donar. |
 | **`meta.json`**| **La meta en vivo:** cuánto se recaudó, donantes y objetivo. |
 | `assets/`      | El escudo del club. |
 
@@ -24,13 +25,23 @@ puede publicar gratis en **GitHub Pages**.
 
 ---
 
-## ✏️ Cómo editar el contenido
+## ✏️ Cómo editar el contenido (recomendado: el panel)
 
-Abrí **`data.js`** y cambiá los textos entre comillas. Ahí configurás:
+Abrí **`admin.html`** en el navegador (en la web publicada es `.../admin.html`).
+Desde ahí, sin tocar código, podés:
 
-- Las **mejoras** que se necesitan y **cuánto sale** cada una.
-- Tu **link de MercadoPago** y tu **alias / CBU** para transferencias.
-- Los textos del inicio, redes sociales y transparencia.
+- **Actualizar la meta** (recaudado, donantes, objetivo).
+- **Agregar / editar / ordenar ítems**, con su **costo** y **foto** (se sube desde
+  el celu y queda guardada dentro del archivo, no hace falta subirla aparte).
+- Marcar un ítem como **abono mensual** (ej: internet), que se muestra como `$X / mes`.
+- Cambiar el **link de MercadoPago**, el **alias / CBU** y los textos.
+
+Cuando terminás, tocás **“Descargar data.json”** y/o **“Descargar meta.json”** y
+reemplazás esos archivos en el repo (o me los pasás y los subo yo). Tus cambios
+quedan como borrador en el navegador por si cerrás sin querer.
+
+> ¿Preferís editar a mano? También podés abrir `data.json` y `meta.json` con un
+> editor de texto y cambiar los valores directamente.
 
 ## 🔴 Cómo actualizar la meta "en vivo"
 

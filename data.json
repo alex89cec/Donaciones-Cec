@@ -1,0 +1,48 @@
+{
+  "club": {
+    "nombre": "CEC Liceo Militar",
+    "nombreLargo": "Centro de Ex Cadetes — Liceo Militar Gral. San Martín",
+    "canalYoutube": "https://www.youtube.com/@CecLiceoMilitarStream",
+    "instagram": "https://www.instagram.com/cecliceomilitar",
+    "facebook": "https://www.facebook.com/CECLICEOMILITAR"
+  },
+  "hero": {
+    "eyebrow": "Streaming del club · Rugby",
+    "titulo": "Ayudanos a mejorar la transmisión de los partidos",
+    "bajada": "Transmitimos en vivo los partidos del Liceo para que la familia rugbier los pueda ver esté donde esté. Con tu aporte mejoramos la imagen, el sonido y la estabilidad de la señal."
+  },
+  "porQue": [
+    { "icono": "📺", "titulo": "Mejor imagen", "texto": "Cámara y captura en HD para ver cada jugada nítida, sin pixelado." },
+    { "icono": "🎙️", "titulo": "Mejor sonido", "texto": "Relato claro y el aliento de la cancha que se escucha de verdad." },
+    { "icono": "📶", "titulo": "Sin cortes", "texto": "Conexión estable para transmitir los 80 minutos sin cortes ni trabas." }
+  ],
+  "mejoras": [
+    { "icono": "📹", "foto": "", "titulo": "Cámara Full HD", "mejora": "Imagen nítida de todo el partido, sin pixelado.", "costo": 220000, "recurrente": false, "periodo": "mes" },
+    { "icono": "🎬", "foto": "", "titulo": "Capturadora de video", "mejora": "Conecta la cámara a la notebook en calidad profesional.", "costo": 95000, "recurrente": false, "periodo": "mes" },
+    { "icono": "🎙️", "foto": "", "titulo": "Kit de micrófonos", "mejora": "Relato y sonido de cancha que se escuchan bien.", "costo": 80000, "recurrente": false, "periodo": "mes" },
+    { "icono": "💻", "foto": "", "titulo": "Notebook para transmitir", "mejora": "Corre el software de streaming sin trabarse.", "costo": 520000, "recurrente": false, "periodo": "mes" },
+    { "icono": "🎥", "foto": "", "titulo": "Trípode + estabilizador", "mejora": "Tomas firmes y prolijas durante todo el encuentro.", "costo": 65000, "recurrente": false, "periodo": "mes" },
+    { "icono": "📶", "foto": "", "titulo": "Abono de internet", "mejora": "Conexión dedicada para transmitir sin cortes, todos los meses.", "costo": 35000, "recurrente": true, "periodo": "mes" }
+  ],
+  "donar": {
+    "mercadopago": {
+      "activo": true,
+      "titulo": "MercadoPago",
+      "descripcion": "Con tarjeta, débito o dinero en cuenta. Es la forma más rápida.",
+      "url": "https://link.mercadopago.com.ar/REEMPLAZAR"
+    },
+    "transferencia": {
+      "activo": true,
+      "titulo": "Transferencia bancaria",
+      "descripcion": "Sin comisiones. Copiá el alias y transferí desde tu banco o billetera.",
+      "alias": "LICEO.STREAM.CEC",
+      "cbu": "0000000000000000000000",
+      "titular": "CEC Liceo Militar — Streaming"
+    }
+  },
+  "transparencia": [
+    "El 100% de lo recaudado se usa exclusivamente para el equipamiento y los gastos del streaming.",
+    "Vamos a publicar acá cada compra y cada abono que se pague con lo donado.",
+    "Cualquier duda, escribinos por Instagram y te contamos en qué anda la campaña."
+  ]
+}
