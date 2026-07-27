@@ -226,6 +226,11 @@ a { color: inherit; text-decoration: none; }
   font-size: .66rem; font-weight: 800; letter-spacing: .5px; text-transform: uppercase;
   color: var(--navy); background: var(--gold); padding: .2rem .55rem; border-radius: 999px;
 }
+.card__tag--ok { background: var(--ok); color: #fff; }
+.card__done { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 1.1rem; box-shadow: var(--shadow); }
+.card--done { border-color: rgba(22,163,74,.45); }
+.card__link { display: inline-block; margin-top: .7rem; color: var(--blue); font-weight: 600; font-size: .9rem; }
+.card__link:hover { text-decoration: underline; }
 .card h3 { font-family: var(--font-head); font-weight: 600; color: var(--navy); font-size: 1.25rem; text-transform: uppercase; }
 .card p { color: var(--muted); font-size: .93rem; margin: .4rem 0 1rem; flex: 1; }
 .card__cost {

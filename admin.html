@@ -80,6 +80,9 @@
     .btn--ok{background:var(--ok);color:#fff}
     .txt-group{font-family:var(--font-head);color:var(--navy);text-transform:uppercase;font-size:1.05rem;letter-spacing:.5px;margin:1.4rem 0 .3rem;border-top:1px solid var(--line);padding-top:1rem}
     .txt-group:first-of-type{border-top:none;padding-top:0;margin-top:.4rem}
+    .seg{display:inline-flex;background:#eef1f7;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;margin-bottom:.6rem}
+    .seg__opt{border:none;background:transparent;color:var(--muted);font-weight:700;font-size:.9rem;padding:.5rem 1rem;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
+    .seg__opt.is-active{background:var(--navy);color:#fff}
     .exportbar{position:fixed;left:0;right:0;bottom:0;background:var(--navy-deep);color:#fff;z-index:30;
       box-shadow:0 -6px 20px rgba(0,0,0,.2)}
     .exportbar__in{max-width:960px;margin:0 auto;padding:.7rem 18px;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
@@ -112,6 +115,18 @@
       border-radius:10px;margin-bottom:.8rem}
     .gate__err{color:var(--danger);font-size:.85rem;font-weight:600;min-height:1.2rem;margin-top:.6rem}
     .metaprev{margin-top:.6rem;font-size:.9rem;color:var(--navy);font-weight:700}
+    /* Recorte / zoom de foto */
+    .crop{position:fixed;inset:0;z-index:200;background:rgba(15,29,56,.78);display:none;align-items:center;justify-content:center;padding:1rem}
+    .crop.show{display:flex}
+    .crop__box{background:#fff;border-radius:16px;padding:1.2rem;max-width:520px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+    .crop__box h3{font-family:var(--font-head);color:var(--navy);text-transform:uppercase;font-size:1.3rem}
+    .crop__hint{color:var(--muted);font-size:.85rem;margin:.2rem 0 .9rem}
+    .crop__frame{position:relative;width:100%;aspect-ratio:16/10;background:#eef1f7;border-radius:12px;overflow:hidden;cursor:grab;touch-action:none;user-select:none}
+    .crop__frame:active{cursor:grabbing}
+    .crop__frame img{position:absolute;left:0;top:0;max-width:none;pointer-events:none}
+    .crop__zoom{display:flex;align-items:center;gap:.7rem;margin:.9rem 0}
+    .crop__zoom input{flex:1}
+    .crop__actions{display:flex;gap:.6rem;justify-content:flex-end}
     @media(max-width:640px){.row--2,.row--3{grid-template-columns:1fr}.item__top{flex-direction:column}.thumb{width:100%;flex-basis:auto;height:120px}}
   </style>
 </head>
@@ -152,6 +167,11 @@
     <section class="card">
       <h2>🔴 Meta en vivo</h2>
       <p class="hint">El <b>objetivo</b> y una <b>base</b> (lo que juntaste por fuera del sitio, ej. efectivo). Las donaciones que confirmes más abajo se <b>suman solas</b> encima de esta base.</p>
+      <label>Moneda</label>
+      <div class="seg" id="moneda-seg">
+        <button type="button" class="seg__opt is-active" data-m="ARS">Pesos $ (ARS)</button>
+        <button type="button" class="seg__opt" data-m="USD">Dólares US$ (USD)</button>
+      </div>
       <div class="row row--3">
         <div>
           <label>Objetivo ($)</label>
@@ -300,6 +320,24 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Recorte / zoom de foto -->
+  <div class="crop" id="cropper" hidden>
+    <div class="crop__box">
+      <h3>Encuadrá la foto</h3>
+      <p class="crop__hint">Arrastrá para mover y usá el zoom. Se va a ver así en la tarjeta.</p>
+      <div class="crop__frame" id="crop-frame"><img id="crop-img" alt="" draggable="false" /></div>
+      <div class="crop__zoom">
+        <span>➖</span>
+        <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" aria-label="Zoom" />
+        <span>➕</span>
+      </div>
+      <div class="crop__actions">
+        <button type="button" class="btn btn--ghost" id="crop-cancel">Cancelar</button>
+        <button type="button" class="btn btn--gold" id="crop-ok">Usar foto</button>
+      </div>
+    </div>
+  </div>
 
   <script src="firebase-shared.js"></script>
   <script src="admin.js"></script>

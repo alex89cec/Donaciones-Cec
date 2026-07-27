@@ -26,7 +26,7 @@
       },
       transparencia: []
     },
-    meta: { objetivo: 0, recaudado: 0, donantes: 0, actualizado: "" }
+    meta: { objetivo: 0, recaudado: 0, donantes: 0, actualizado: "", moneda: "ARS" }
   };
 
   /* ---------- Helpers ---------- */
@@ -34,7 +34,7 @@
   const attr = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const num = (v) => Math.max(0, Math.round(Number(v) || 0));
-  const pesos = (n) => "$" + num(n).toLocaleString("es-AR");
+  const pesos = (n) => ((state.meta && state.meta.moneda === "USD") ? "US$ " : "$") + num(n).toLocaleString("es-AR");
   const tsMillis = (v) => (v && typeof v.toMillis === "function") ? v.toMillis() : (v ? (new Date(v).getTime() || 0) : 0);
 
   let toastTimer;
@@ -80,6 +80,7 @@
     // meta
     const mSnap = await fs.getDoc(fs.doc(db, "config", "meta"));
     state.meta = mSnap.exists() ? mSnap.data() : (seedMeta.objetivo != null ? seedMeta : DEFAULTS.meta);
+    state.meta.moneda = state.meta.moneda === "USD" ? "USD" : "ARS";
 
     // contenido
     const cSnap = await fs.getDoc(fs.doc(db, "config", "contenido"));
@@ -108,7 +109,8 @@
       objetivo: num(state.meta.objetivo),
       recaudado: num(state.meta.recaudado),
       donantes: num(state.meta.donantes),
-      actualizado: state.meta.actualizado
+      actualizado: state.meta.actualizado,
+      moneda: state.meta.moneda === "USD" ? "USD" : "ARS"
     });
   }
   async function saveContenido() {
@@ -128,7 +130,8 @@
       const m = items[i];
       const payload = {
         orden: i, icono: m.icono || "", foto: m.foto || "", titulo: m.titulo || "",
-        mejora: m.mejora || "", costo: num(m.costo), recurrente: !!m.recurrente, periodo: m.periodo || "mes"
+        mejora: m.mejora || "", costo: num(m.costo), recurrente: !!m.recurrente, periodo: m.periodo || "mes",
+        link: m.link || "", logrado: !!m.logrado
       };
       if (m._id) { await fs.setDoc(fs.doc(db, "mejoras", m._id), payload); keep.add(m._id); }
       else { const ref = await fs.addDoc(fs.collection(db, "mejoras"), payload); m._id = ref.id; keep.add(ref.id); }
@@ -165,6 +168,7 @@
     $("#m-objetivo").value = m.objetivo || 0;
     $("#m-recaudado").value = m.recaudado || 0;
     $("#m-donantes").value = m.donantes || 0;
+    setMonedaUI(m.moneda);
 
     $("#mp-activo").checked = !!(d.donar.mercadopago && d.donar.mercadopago.activo);
     $("#mp-url").value = (d.donar.mercadopago && d.donar.mercadopago.url) || "";
@@ -230,6 +234,24 @@
     $("#metaprev").textContent = `Vista previa: ${pesos(m.recaudado)} de ${pesos(m.objetivo)} · ${Math.round(pct)}% · ${num(m.donantes)} donantes`;
   }
 
+  /* ---------- Moneda ---------- */
+  function setMonedaUI(m) {
+    const cur = m === "USD" ? "USD" : "ARS";
+    document.querySelectorAll("#moneda-seg .seg__opt").forEach((o) => o.classList.toggle("is-active", o.getAttribute("data-m") === cur));
+  }
+  function bindMoneda() {
+    const seg = $("#moneda-seg");
+    if (!seg) return;
+    seg.addEventListener("click", (e) => {
+      const b = e.target.closest(".seg__opt"); if (!b) return;
+      const m = b.getAttribute("data-m") === "USD" ? "USD" : "ARS";
+      if (state.meta) state.meta.moneda = m;
+      setMonedaUI(m);
+      markDirty();
+      renderItems(); renderDonaciones(); actualizarPreviewMeta();
+    });
+  }
+
   /* ---------- Ítems ---------- */
   function renderItems() {
     $("#items").innerHTML = state.data.mejoras.map((m, i) => {
@@ -248,12 +270,16 @@
               <div><label>Emoji (si no hay foto)</label><input type="text" data-i="${i}" data-k="icono" value="${attr(m.icono)}" maxlength="4" /></div>
               <div><label>Período</label><input type="text" data-i="${i}" data-k="periodo" value="${attr(m.periodo || "mes")}" placeholder="mes" /></div>
             </div>
+            <label>Link del producto (opcional)</label>
+            <input type="url" data-i="${i}" data-k="link" value="${attr(m.link)}" placeholder="https://... (para que vean el producto y su precio)" />
           </div>
         </div>
         <div class="item__actions">
-          <label class="chk"><input type="checkbox" data-i="${i}" data-k="recurrente" ${m.recurrente ? "checked" : ""} /> Abono mensual (gasto que se paga todos los meses)</label>
+          <label class="chk"><input type="checkbox" data-i="${i}" data-k="recurrente" ${m.recurrente ? "checked" : ""} /> Abono mensual</label>
+          <label class="chk"><input type="checkbox" data-i="${i}" data-k="logrado" ${m.logrado ? "checked" : ""} /> ✅ Ya conseguido</label>
           <span style="flex:1"></span>
           <label class="btn btn--ghost btn--sm filepick">📷 Foto<input type="file" accept="image/*" data-i="${i}" /></label>
+          ${m.foto ? `<button class="btn btn--ghost btn--sm" data-act="recrop" data-i="${i}">Reencuadrar</button>` : ""}
           ${m.foto ? `<button class="btn btn--ghost btn--sm" data-act="rmfoto" data-i="${i}">Quitar foto</button>` : ""}
           <button class="btn btn--ghost btn--sm" data-act="up" data-i="${i}" title="Subir">▲</button>
           <button class="btn btn--ghost btn--sm" data-act="down" data-i="${i}" title="Bajar">▼</button>
@@ -291,36 +317,96 @@
       else if (act === "up" && i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; }
       else if (act === "down" && i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; }
       else if (act === "rmfoto") { arr[i].foto = ""; }
+      else if (act === "recrop") { if (arr[i].foto) openCropper(arr[i].foto, (out) => { arr[i].foto = out; renderItems(); markDirty(); }); return; }
       renderItems(); markDirty();
     });
     $("#add-item").addEventListener("click", () => {
-      state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes" });
+      state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes", link: "", logrado: false });
       renderItems(); markDirty();
       $("#items").lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
 
   function handlePhoto(i, file) {
-    toast("Procesando foto…");
     const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 1000, scale = Math.min(1, maxW / img.width);
-        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        try {
-          state.data.mejoras[i].foto = canvas.toDataURL("image/jpeg", 0.82);
-          renderItems(); markDirty(); toast("Foto cargada ✓");
-        } catch (e) { toast("No se pudo procesar la foto"); }
-      };
-      img.onerror = () => toast("Archivo de imagen inválido");
-      img.src = reader.result;
-    };
+    reader.onload = () => openCropper(reader.result, (out) => {
+      state.data.mejoras[i].foto = out; renderItems(); markDirty(); toast("Foto lista ✓");
+    });
     reader.onerror = () => toast("No se pudo leer el archivo");
     reader.readAsDataURL(file);
+  }
+
+  /* ---------- Recorte / zoom de foto ---------- */
+  let cropState = null;
+  function openCropper(dataURL, cb) {
+    const img = new Image();
+    img.onload = () => {
+      const overlay = $("#cropper");
+      overlay.hidden = false; overlay.classList.add("show");
+      const r = $("#crop-frame").getBoundingClientRect();
+      const fw = r.width, fh = r.height;
+      const cover = Math.max(fw / img.naturalWidth, fh / img.naturalHeight);
+      cropState = { img, nw: img.naturalWidth, nh: img.naturalHeight, cover, z: 1, ox: 0, oy: 0, fw, fh, cb };
+      $("#crop-img").src = dataURL;
+      $("#crop-zoom").value = 1;
+      layoutCrop(true);
+    };
+    img.onerror = () => toast("Imagen inválida");
+    img.src = dataURL;
+  }
+  function layoutCrop(center) {
+    const s = cropState; if (!s) return;
+    const scale = s.cover * s.z;
+    const iw = s.nw * scale, ih = s.nh * scale;
+    if (center) { s.ox = (s.fw - iw) / 2; s.oy = (s.fh - ih) / 2; }
+    s.ox = Math.min(0, Math.max(s.fw - iw, s.ox));
+    s.oy = Math.min(0, Math.max(s.fh - ih, s.oy));
+    const el = $("#crop-img");
+    el.style.width = iw + "px"; el.style.height = ih + "px";
+    el.style.transform = "translate(" + s.ox + "px," + s.oy + "px)";
+  }
+  function setZoom(nz) {
+    const s = cropState; if (!s) return;
+    nz = Math.min(4, Math.max(1, nz));
+    const oldScale = s.cover * s.z, newScale = s.cover * nz;
+    const cx = (s.fw / 2 - s.ox) / oldScale, cy = (s.fh / 2 - s.oy) / oldScale;
+    s.z = nz;
+    s.ox = s.fw / 2 - cx * newScale; s.oy = s.fh / 2 - cy * newScale;
+    layoutCrop(false);
+  }
+  function exportCrop() {
+    const s = cropState; if (!s) return null;
+    const scale = s.cover * s.z;
+    const sx = -s.ox / scale, sy = -s.oy / scale, sw = s.fw / scale, sh = s.fh / scale;
+    const outW = 960, outH = 600;
+    const canvas = document.createElement("canvas");
+    canvas.width = outW; canvas.height = outH;
+    canvas.getContext("2d").drawImage(s.img, sx, sy, sw, sh, 0, 0, outW, outH);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  }
+  function closeCropper() { const o = $("#cropper"); o.classList.remove("show"); o.hidden = true; cropState = null; }
+  function bindCropper() {
+    const frame = $("#crop-frame");
+    if (!frame) return;
+    let drag = false, lx = 0, ly = 0;
+    frame.addEventListener("pointerdown", (e) => { drag = true; lx = e.clientX; ly = e.clientY; try { frame.setPointerCapture(e.pointerId); } catch (x) {} });
+    frame.addEventListener("pointermove", (e) => {
+      if (!drag || !cropState) return;
+      cropState.ox += e.clientX - lx; cropState.oy += e.clientY - ly;
+      lx = e.clientX; ly = e.clientY; layoutCrop(false);
+    });
+    const end = () => { drag = false; };
+    frame.addEventListener("pointerup", end);
+    frame.addEventListener("pointercancel", end);
+    frame.addEventListener("wheel", (e) => {
+      if (!cropState) return;
+      e.preventDefault();
+      const nz = cropState.z * (e.deltaY < 0 ? 1.08 : 0.92);
+      $("#crop-zoom").value = Math.min(4, Math.max(1, nz)); setZoom(nz);
+    }, { passive: false });
+    $("#crop-zoom").addEventListener("input", (e) => setZoom(+e.target.value));
+    $("#crop-ok").addEventListener("click", () => { const out = exportCrop(); const cb = cropState && cropState.cb; closeCropper(); if (cb && out) cb(out); });
+    $("#crop-cancel").addEventListener("click", closeCropper);
   }
 
   /* ---------- Transparencia ---------- */
@@ -531,7 +617,7 @@
 
   /* ---------- Init ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
-    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI(); bindPorque();
+    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI(); bindPorque(); bindCropper(); bindMoneda();
     try {
       const fb = await withTimeout(window.fbLoad(true), 12000, "No se pudo conectar con Firebase");
       db = fb.db; fs = fb.fs; auth = fb.auth; authMod = fb.authMod;

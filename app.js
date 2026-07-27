@@ -11,7 +11,8 @@
     String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  const pesos = (n) => "$" + Math.round(Number(n) || 0).toLocaleString("es-AR");
+  let MONEDA = "ARS";
+  const pesos = (n) => (MONEDA === "USD" ? "US$ " : "$") + Math.round(Number(n) || 0).toLocaleString("es-AR");
 
   function haceCuanto(iso) {
     const t = new Date(iso).getTime();
@@ -80,23 +81,29 @@
   }
 
   /* ---------- Render: mejoras ---------- */
+  let lastMejoras = [], lastDon = [];
   function renderMejoras(items) {
     items = items || [];
+    lastMejoras = items;
     $("#mejoras-grid").innerHTML = items.map((m) => {
+      const done = !!m.logrado;
+      const doneMark = done ? `<span class="card__done" title="Conseguido">✅</span>` : "";
       const media = m.foto
-        ? `<div class="card__media"><img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" /></div>`
-        : `<div class="card__media card__media--empty"><span>${esc(m.icono || "🏉")}</span></div>`;
-      const badge = m.recurrente ? `<span class="card__tag">Mensual</span>` : "";
+        ? `<div class="card__media"><img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" />${doneMark}</div>`
+        : `<div class="card__media card__media--empty"><span>${esc(m.icono || "🏉")}</span>${doneMark}</div>`;
+      const badges = (m.recurrente ? `<span class="card__tag">Mensual</span>` : "") + (done ? `<span class="card__tag card__tag--ok">Conseguido</span>` : "");
       const costo = m.recurrente
         ? `<div class="card__cost"><small>Abono ${esc(m.periodo || "mes")}</small>${pesos(m.costo)} <span class="per">/ ${esc(m.periodo || "mes")}</span></div>`
         : `<div class="card__cost"><small>Costo estimado</small>${pesos(m.costo)}</div>`;
+      const link = m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener" class="card__link">Ver producto ↗</a>` : "";
       return `
-        <article class="card">
+        <article class="card${done ? " card--done" : ""}">
           ${media}
           <div class="card__body">
-            <div class="card__head">${badge}<h3>${esc(m.titulo)}</h3></div>
+            <div class="card__head">${badges}<h3>${esc(m.titulo)}</h3></div>
             <p>${esc(m.mejora)}</p>
             ${costo}
+            ${link}
           </div>
         </article>`;
     }).join("");
@@ -332,7 +339,13 @@
     try {
       const { db, fs } = await fb();
       fs.onSnapshot(fs.doc(db, "config", "meta"),
-        (snap) => { if (snap.exists()) { metaBase = snap.data(); recomputeMeta(); } }, () => {});
+        (snap) => {
+          if (!snap.exists()) return;
+          metaBase = snap.data();
+          const nm = metaBase.moneda === "USD" ? "USD" : "ARS";
+          if (nm !== MONEDA) { MONEDA = nm; renderMejoras(lastMejoras); renderMuro(lastDon); renderCarousel(lastDon); }
+          recomputeMeta();
+        }, () => {});
       fs.onSnapshot(fs.doc(db, "config", "contenido"),
         (snap) => { if (snap.exists()) renderContenido(snap.data()); }, () => {});
       fs.onSnapshot(fs.query(fs.collection(db, "mejoras"), fs.orderBy("orden")),
@@ -342,6 +355,7 @@
         (qs) => {
           const arr = qs.docs.map((d) => d.data());
           arr.sort((a, b) => tsMillis(b.confirmadaEn || b.creadoEn) - tsMillis(a.confirmadaEn || a.creadoEn));
+          lastDon = arr;
           confSum = arr.reduce((s, d) => s + (Number(d.monto) || 0), 0);
           confCount = arr.length;
           const nv = arr[0] && (arr[0].confirmadaEn || arr[0].creadoEn);
