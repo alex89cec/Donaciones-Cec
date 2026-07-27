@@ -1,4 +1,4 @@
-# 💛💙 Donaciones · Streaming CEC Liceo Militar
+# 💛💙🤍 Donaciones · Streaming CEC Liceo Militar
 
 Web para juntar donaciones y mejorar la **transmisión en vivo** de los partidos
 de rugby del CEC Liceo Militar. Muestra qué se necesita, cuánto sale, cómo donar
