@@ -105,6 +105,7 @@
     state.data.porQue = c.porQue || seed.porQue || [];
     state.data.donar = c.donar || seed.donar || DEFAULTS.data.donar;
     state.data.transparencia = c.transparencia || seed.transparencia || [];
+    state.data.faq = c.faq || seed.faq || [];
     state.data.textos = c.textos || seed.textos || {};
 
     // mejoras (colección; un doc por ítem para no chocar con el límite de tamaño)
@@ -137,6 +138,7 @@
       porQue: state.data.porQue,
       donar: state.data.donar,
       transparencia: state.data.transparencia,
+      faq: state.data.faq || [],
       textos: state.data.textos || {}
     });
   }
@@ -148,7 +150,8 @@
       const payload = {
         orden: i, icono: m.icono || "", foto: m.foto || "", titulo: m.titulo || "",
         mejora: m.mejora || "", costo: num(m.costo), recurrente: !!m.recurrente, periodo: m.periodo || "mes",
-        link: m.link || "", logrado: !!m.logrado, moneda: m.moneda === "USD" ? "USD" : "ARS"
+        link: m.link || "", logrado: !!m.logrado, moneda: m.moneda === "USD" ? "USD" : "ARS",
+        urgencia: (m.urgencia === "urgente" || m.urgencia === "menos") ? m.urgencia : "normal", prioridad: num(m.prioridad)
       };
       if (m._id) { await fs.setDoc(fs.doc(db, "mejoras", m._id), payload); keep.add(m._id); }
       else { const ref = await fs.addDoc(fs.collection(db, "mejoras"), payload); m._id = ref.id; keep.add(ref.id); }
@@ -210,6 +213,7 @@
     sv("#t-muroTitulo", t.muroTitulo); sv("#t-muroSub", t.muroSub);
     sv("#t-saludosTitulo", t.saludosTitulo);
     sv("#t-transparenciaTitulo", t.transparenciaTitulo);
+    sv("#t-faqTitulo", t.faqTitulo);
     sv("#t-footerNota", t.footerNota);
     // Textos de los métodos de donación
     sv("#mp-titulo", d.donar.mercadopago && d.donar.mercadopago.titulo);
@@ -222,6 +226,7 @@
 
     renderItems();
     renderTransp();
+    renderFaq();
     renderPorque();
     actualizarPreviewMeta();
   }
@@ -318,6 +323,16 @@
             </div>
             <label>Link del producto (opcional)</label>
             <input type="url" data-i="${i}" data-k="link" value="${attr(m.link)}" placeholder="https://... (para que vean el producto y su precio)" />
+            <div class="row row--2">
+              <div><label>Urgencia</label>
+                <select data-i="${i}" data-k="urgencia">
+                  <option value="normal"${(m.urgencia === "urgente" || m.urgencia === "menos") ? "" : " selected"}>Normal</option>
+                  <option value="urgente"${m.urgencia === "urgente" ? " selected" : ""}>🔴 Urgente</option>
+                  <option value="menos"${m.urgencia === "menos" ? " selected" : ""}>Menos urgente</option>
+                </select>
+              </div>
+              <div><label>N° de prioridad (0 = sin número)</label><input type="number" data-i="${i}" data-k="prioridad" min="0" step="1" value="${Number(m.prioridad) || 0}" /></div>
+            </div>
           </div>
         </div>
         <div class="item__actions">
@@ -341,7 +356,7 @@
       const el = e.target, i = el.getAttribute("data-i"), k = el.getAttribute("data-k");
       if (i == null || k == null) return;
       let v = el.type === "checkbox" ? el.checked : el.value;
-      if (k === "costo") v = num(v);
+      if (k === "costo" || k === "prioridad") v = num(v);
       state.data.mejoras[+i][k] = v;
       markDirty();
     });
@@ -367,7 +382,7 @@
       renderItems(); markDirty();
     });
     $("#add-item").addEventListener("click", () => {
-      state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes", link: "", logrado: false, moneda: (state.meta && state.meta.moneda === "USD") ? "USD" : "ARS" });
+      state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes", link: "", logrado: false, moneda: (state.meta && state.meta.moneda === "USD") ? "USD" : "ARS", urgencia: "normal", prioridad: 0 });
       renderItems(); markDirty();
       $("#items").lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
     });
@@ -481,6 +496,40 @@
     });
   }
 
+  /* ---------- FAQ ---------- */
+  function renderFaq() {
+    const cont = $("#faq-editor");
+    if (!cont || !state.data) return;
+    const faq = state.data.faq || (state.data.faq = []);
+    cont.innerHTML = faq.map((f, i) => `
+      <div style="border:1px solid var(--line);border-radius:12px;padding:.8rem;margin-bottom:.6rem;background:#fbfcfe">
+        <label>Pregunta</label>
+        <input type="text" data-fi="${i}" data-fk="pregunta" value="${attr(f.pregunta)}" />
+        <label>Respuesta</label>
+        <textarea data-fi="${i}" data-fk="respuesta">${attr(f.respuesta)}</textarea>
+        <div style="text-align:right;margin-top:.4rem"><button class="btn btn--danger btn--sm" data-act="delfaq" data-fi="${i}">Eliminar</button></div>
+      </div>`).join("");
+  }
+  function bindFaq() {
+    const cont = $("#faq-editor");
+    if (!cont) return;
+    cont.addEventListener("input", (e) => {
+      const i = e.target.getAttribute("data-fi"), k = e.target.getAttribute("data-fk");
+      if (i == null || k == null) return;
+      state.data.faq[+i][k] = e.target.value; markDirty();
+    });
+    cont.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-act=delfaq]");
+      if (!b) return;
+      state.data.faq.splice(+b.getAttribute("data-fi"), 1);
+      renderFaq(); markDirty();
+    });
+    $("#add-faq").addEventListener("click", () => {
+      (state.data.faq = state.data.faq || []).push({ pregunta: "", respuesta: "" });
+      renderFaq(); markDirty();
+    });
+  }
+
   /* ---------- Campos estáticos ---------- */
   function bindStatic() {
     const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("input", (e) => { fn(e.target); markDirty(); }); };
@@ -512,6 +561,7 @@
     tx("#t-muroTitulo", "muroTitulo"); tx("#t-muroSub", "muroSub");
     tx("#t-saludosTitulo", "saludosTitulo");
     tx("#t-transparenciaTitulo", "transparenciaTitulo");
+    tx("#t-faqTitulo", "faqTitulo");
     tx("#t-footerNota", "footerNota");
 
     on("#c-nombre", (el) => state.data.club.nombre = el.value);
@@ -663,7 +713,7 @@
 
   /* ---------- Init ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
-    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI(); bindPorque(); bindCropper(); bindMoneda(); bindMetaModo();
+    bindStatic(); bindItems(); bindTransp(); bindFaq(); bindButtons(); bindDonacionesUI(); bindPorque(); bindCropper(); bindMoneda(); bindMetaModo();
     try { const c = await getJSON("cotizacion.json"); RATE = Number(c.usd) || 0; } catch (e) {}
     try {
       const fb = await withTimeout(window.fbLoad(true), 12000, "No se pudo conectar con Firebase");

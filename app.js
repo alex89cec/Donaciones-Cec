@@ -62,6 +62,7 @@
     setTxt("muro-title", T.muroTitulo); setTxt("muro-sub", T.muroSub);
     setTxt("saludos-title", T.saludosTitulo);
     setTxt("transparencia-title", T.transparenciaTitulo);
+    setTxt("faq-title", T.faqTitulo);
     setTxt("footer-note", T.footerNota);
 
     $("#porque-grid").innerHTML = (D.porQue || [])
@@ -76,6 +77,18 @@
 
     $("#transparencia-list").innerHTML = (D.transparencia || [])
       .map((t) => `<li>${esc(t)}</li>`).join("");
+
+    // FAQ (acordeón)
+    const faq = D.faq || [];
+    const faqSec = $("#faq");
+    if (faqSec) {
+      faqSec.hidden = !faq.length;
+      $("#faq-list").innerHTML = faq.map((f) => `
+        <details class="faq__item">
+          <summary>${esc(f.pregunta)}</summary>
+          <div class="faq__ans">${esc(f.respuesta)}</div>
+        </details>`).join("");
+    }
 
     $("#footer-club").textContent = club.nombre || "";
     $("#footer-club-long").textContent = club.nombreLargo || "";
@@ -94,10 +107,15 @@
     $("#mejoras-grid").innerHTML = items.map((m) => {
       const done = !!m.logrado;
       const doneMark = done ? `<span class="card__done" title="Conseguido">✅</span>` : "";
+      const prio = Number(m.prioridad) || 0;
+      const prioMark = prio > 0 ? `<span class="card__prio" title="Prioridad">${prio}</span>` : "";
+      const urg = m.urgencia === "urgente"
+        ? `<span class="card__tag card__tag--urg">Urgente</span>`
+        : (m.urgencia === "menos" ? `<span class="card__tag card__tag--low">Menos urgente</span>` : "");
       const media = m.foto
-        ? `<div class="card__media"><img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" />${doneMark}</div>`
-        : `<div class="card__media card__media--empty"><span>${esc(m.icono || "🏉")}</span>${doneMark}</div>`;
-      const badges = (m.recurrente ? `<span class="card__tag">Mensual</span>` : "") + (done ? `<span class="card__tag card__tag--ok">Conseguido</span>` : "");
+        ? `<div class="card__media">${prioMark}<img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" />${doneMark}</div>`
+        : `<div class="card__media card__media--empty">${prioMark}<span>${esc(m.icono || "🏉")}</span>${doneMark}</div>`;
+      const badges = urg + (m.recurrente ? `<span class="card__tag">Mensual</span>` : "") + (done ? `<span class="card__tag card__tag--ok">Conseguido</span>` : "");
       const cur = m.moneda === "USD" ? "USD" : "ARS";
       const other = cur === "USD" ? "ARS" : "USD";
       const nativo = fmt(m.costo, cur);

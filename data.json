@@ -24,6 +24,7 @@
     "muroTitulo": "Bancan el streaming 💛💙🤍",
     "muroSub": "Gracias a quienes hacen posible la transmisión del club.",
     "transparenciaTitulo": "Transparencia",
+    "faqTitulo": "Preguntas frecuentes",
     "footerNota": "Campaña solidaria de la comunidad del Liceo para mejorar el streaming del club. Hecho con 💛💙🤍"
   },
   "porQue": [
@@ -59,5 +60,10 @@
     "El 100% de lo recaudado se usa exclusivamente para el equipamiento y los gastos del streaming.",
     "Vamos a publicar acá cada compra y cada abono que se pague con lo donado.",
     "Cualquier duda, escribinos por Instagram y te contamos en qué anda la campaña."
+  ],
+  "faq": [
+    { "pregunta": "¿A dónde va la plata que dono?", "respuesta": "El 100% se usa para el equipamiento y los gastos del streaming del club. Publicamos cada compra en la sección de transparencia." },
+    { "pregunta": "¿Puedo donar por transferencia?", "respuesta": "Sí. En \"Cómo donar\" tenés el alias para transferir, y también podés donar por MercadoPago." },
+    { "pregunta": "¿Cómo aparezco en el muro de donantes?", "respuesta": "Después de donar, dejá tu nombre y mensaje en el formulario. Cuando confirmemos tu aporte, aparecés en el muro y en la transmisión." }
   ]
 }
