@@ -45,6 +45,17 @@
     $("#hero-title").textContent = hero.titulo || "";
     $("#hero-lead").textContent = hero.bajada || "";
 
+    // Títulos y textos de secciones (editables desde el panel)
+    const T = D.textos || {};
+    const setTxt = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== "") el.textContent = v; };
+    setTxt("porque-title", T.porqueTitulo); setTxt("porque-sub", T.porqueSub);
+    setTxt("mejoras-title", T.mejorasTitulo); setTxt("mejoras-sub", T.mejorasSub);
+    setTxt("donar-title", T.donarTitulo); setTxt("donar-sub", T.donarSub);
+    setTxt("saludo-title", T.saludoTitulo); setTxt("saludo-text", T.saludoTexto);
+    setTxt("muro-title", T.muroTitulo); setTxt("muro-sub", T.muroSub);
+    setTxt("transparencia-title", T.transparenciaTitulo);
+    setTxt("footer-note", T.footerNota);
+
     $("#porque-grid").innerHTML = (D.porQue || [])
       .map((p) => `
         <article class="pq">

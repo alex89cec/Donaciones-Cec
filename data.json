@@ -7,9 +7,23 @@
     "facebook": "https://www.facebook.com/CECLICEOMILITAR"
   },
   "hero": {
-    "eyebrow": "Streaming del club · Rugby",
+    "eyebrow": "Streaming del club",
     "titulo": "Ayudanos a mejorar la transmisión de los partidos",
     "bajada": "Transmitimos en vivo los partidos del Liceo para que la familia rugbier los pueda ver esté donde esté. Con tu aporte mejoramos la imagen, el sonido y la estabilidad de la señal."
+  },
+  "textos": {
+    "porqueTitulo": "¿Para qué es tu ayuda?",
+    "porqueSub": "Un mejor streaming es más familia del Liceo disfrutando cada partido.",
+    "mejorasTitulo": "Qué necesitamos y cuánto sale",
+    "mejorasSub": "Cada mejora suma a una transmisión más profesional. Estos son los equipos que buscamos.",
+    "donarTitulo": "Cómo donar",
+    "donarSub": "Elegí la forma que más te convenga. Todo aporte, por chico que sea, suma. 💛",
+    "saludoTitulo": "💬 Dejá tu saludo",
+    "saludoTexto": "¿Ya donaste? Dejanos tu nombre y un mensaje. Vas a aparecer en el muro y en la transmisión cuando confirmemos tu aporte. 💛",
+    "muroTitulo": "Bancan el streaming 💛💙🤍",
+    "muroSub": "Gracias a quienes hacen posible la transmisión del club.",
+    "transparenciaTitulo": "Transparencia",
+    "footerNota": "Campaña solidaria de la comunidad del Liceo para mejorar el streaming del club. Hecho con 💛💙🤍"
   },
   "porQue": [
     { "icono": "📺", "titulo": "Mejor imagen", "texto": "Cámara y captura en HD para ver cada jugada nítida, sin pixelado." },

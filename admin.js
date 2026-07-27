@@ -16,7 +16,8 @@
   const DEFAULTS = {
     data: {
       club: { nombre: "CEC Liceo Militar", nombreLargo: "", canalYoutube: "", instagram: "", facebook: "" },
-      hero: { eyebrow: "Streaming del club · Rugby", titulo: "", bajada: "" },
+      hero: { eyebrow: "Streaming del club", titulo: "", bajada: "" },
+      textos: {},
       porQue: [],
       mejoras: [],
       donar: {
@@ -88,6 +89,7 @@
     state.data.porQue = c.porQue || seed.porQue || [];
     state.data.donar = c.donar || seed.donar || DEFAULTS.data.donar;
     state.data.transparencia = c.transparencia || seed.transparencia || [];
+    state.data.textos = c.textos || seed.textos || {};
 
     // mejoras (colección; un doc por ítem para no chocar con el límite de tamaño)
     loadedMejoraIds = new Set();
@@ -115,7 +117,8 @@
       hero: state.data.hero,
       porQue: state.data.porQue,
       donar: state.data.donar,
-      transparencia: state.data.transparencia
+      transparencia: state.data.transparencia,
+      textos: state.data.textos || {}
     });
   }
   async function saveMejoras() {
@@ -173,13 +176,51 @@
     $("#h-titulo").value = d.hero.titulo || "";
     $("#h-bajada").value = d.hero.bajada || "";
     $("#h-eyebrow").value = d.hero.eyebrow || "";
-    $("#c-ig").value = d.club.instagram || "";
-    $("#c-fb").value = d.club.facebook || "";
-    $("#c-yt").value = d.club.canalYoutube || "";
+
+    // Textos de secciones
+    const t = d.textos || {};
+    const sv = (id, v) => { const el = $(id); if (el) el.value = v || ""; };
+    sv("#t-porqueTitulo", t.porqueTitulo); sv("#t-porqueSub", t.porqueSub);
+    sv("#t-mejorasTitulo", t.mejorasTitulo); sv("#t-mejorasSub", t.mejorasSub);
+    sv("#t-donarTitulo", t.donarTitulo); sv("#t-donarSub", t.donarSub);
+    sv("#t-saludoTitulo", t.saludoTitulo); sv("#t-saludoTexto", t.saludoTexto);
+    sv("#t-muroTitulo", t.muroTitulo); sv("#t-muroSub", t.muroSub);
+    sv("#t-transparenciaTitulo", t.transparenciaTitulo);
+    sv("#t-footerNota", t.footerNota);
+    // Textos de los métodos de donación
+    sv("#mp-titulo", d.donar.mercadopago && d.donar.mercadopago.titulo);
+    sv("#mp-desc", d.donar.mercadopago && d.donar.mercadopago.descripcion);
+    sv("#tr-titulo", d.donar.transferencia && d.donar.transferencia.titulo);
+    sv("#tr-desc", d.donar.transferencia && d.donar.transferencia.descripcion);
+    // Club
+    sv("#c-nombre", d.club.nombre); sv("#c-nombreLargo", d.club.nombreLargo);
+    sv("#c-ig", d.club.instagram); sv("#c-fb", d.club.facebook); sv("#c-yt", d.club.canalYoutube);
 
     renderItems();
     renderTransp();
+    renderPorque();
     actualizarPreviewMeta();
+  }
+
+  /* ---------- "Por qué" (3 puntos) ---------- */
+  function renderPorque() {
+    const cont = $("#porque-items");
+    if (!cont) return;
+    cont.innerHTML = state.data.porQue.map((p, i) => `
+      <div class="row row--3" style="margin-bottom:.4rem">
+        <div><label>Punto ${i + 1} · emoji</label><input type="text" data-pi="${i}" data-pk="icono" value="${attr(p.icono)}" maxlength="4" /></div>
+        <div><label>Título</label><input type="text" data-pi="${i}" data-pk="titulo" value="${attr(p.titulo)}" /></div>
+        <div><label>Texto</label><input type="text" data-pi="${i}" data-pk="texto" value="${attr(p.texto)}" /></div>
+      </div>`).join("");
+  }
+  function bindPorque() {
+    const cont = $("#porque-items");
+    if (!cont) return;
+    cont.addEventListener("input", (e) => {
+      const i = e.target.getAttribute("data-pi"), k = e.target.getAttribute("data-pk");
+      if (i == null || k == null) return;
+      state.data.porQue[+i][k] = e.target.value; markDirty();
+    });
   }
 
   function actualizarPreviewMeta() {
@@ -309,19 +350,38 @@
 
   /* ---------- Campos estáticos ---------- */
   function bindStatic() {
-    const on = (id, fn) => $(id).addEventListener("input", (e) => { fn(e.target); markDirty(); });
+    const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("input", (e) => { fn(e.target); markDirty(); }); };
+    const tx = (id, key) => on(id, (el) => { (state.data.textos = state.data.textos || {})[key] = el.value; });
+
     on("#m-objetivo", (el) => state.meta.objetivo = num(el.value));
     on("#m-recaudado", (el) => state.meta.recaudado = num(el.value));
     on("#m-donantes", (el) => state.meta.donantes = num(el.value));
+
     on("#mp-activo", (el) => state.data.donar.mercadopago.activo = el.checked);
     on("#mp-url", (el) => state.data.donar.mercadopago.url = el.value);
+    on("#mp-titulo", (el) => state.data.donar.mercadopago.titulo = el.value);
+    on("#mp-desc", (el) => state.data.donar.mercadopago.descripcion = el.value);
     on("#tr-activo", (el) => state.data.donar.transferencia.activo = el.checked);
     on("#tr-alias", (el) => state.data.donar.transferencia.alias = el.value);
     on("#tr-cbu", (el) => state.data.donar.transferencia.cbu = el.value);
     on("#tr-titular", (el) => state.data.donar.transferencia.titular = el.value);
+    on("#tr-titulo", (el) => state.data.donar.transferencia.titulo = el.value);
+    on("#tr-desc", (el) => state.data.donar.transferencia.descripcion = el.value);
+
     on("#h-titulo", (el) => state.data.hero.titulo = el.value);
     on("#h-bajada", (el) => state.data.hero.bajada = el.value);
     on("#h-eyebrow", (el) => state.data.hero.eyebrow = el.value);
+
+    tx("#t-porqueTitulo", "porqueTitulo"); tx("#t-porqueSub", "porqueSub");
+    tx("#t-mejorasTitulo", "mejorasTitulo"); tx("#t-mejorasSub", "mejorasSub");
+    tx("#t-donarTitulo", "donarTitulo"); tx("#t-donarSub", "donarSub");
+    tx("#t-saludoTitulo", "saludoTitulo"); tx("#t-saludoTexto", "saludoTexto");
+    tx("#t-muroTitulo", "muroTitulo"); tx("#t-muroSub", "muroSub");
+    tx("#t-transparenciaTitulo", "transparenciaTitulo");
+    tx("#t-footerNota", "footerNota");
+
+    on("#c-nombre", (el) => state.data.club.nombre = el.value);
+    on("#c-nombreLargo", (el) => state.data.club.nombreLargo = el.value);
     on("#c-ig", (el) => state.data.club.instagram = el.value);
     on("#c-fb", (el) => state.data.club.facebook = el.value);
     on("#c-yt", (el) => state.data.club.canalYoutube = el.value);
@@ -469,7 +529,7 @@
 
   /* ---------- Init ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
-    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI();
+    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI(); bindPorque();
     try {
       const fb = await withTimeout(window.fbLoad(true), 12000, "No se pudo conectar con Firebase");
       db = fb.db; fs = fb.fs; auth = fb.auth; authMod = fb.authMod;

@@ -78,6 +78,8 @@
     .don-item__actions{display:flex;gap:.4rem;flex-wrap:wrap}
     .don-empty{color:var(--muted);text-align:center;padding:1.2rem}
     .btn--ok{background:var(--ok);color:#fff}
+    .txt-group{font-family:var(--font-head);color:var(--navy);text-transform:uppercase;font-size:1.05rem;letter-spacing:.5px;margin:1.4rem 0 .3rem;border-top:1px solid var(--line);padding-top:1rem}
+    .txt-group:first-of-type{border-top:none;padding-top:0;margin-top:.4rem}
     .exportbar{position:fixed;left:0;right:0;bottom:0;background:var(--navy-deep);color:#fff;z-index:30;
       box-shadow:0 -6px 20px rgba(0,0,0,.2)}
     .exportbar__in{max-width:960px;margin:0 auto;padding:.7rem 18px;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
@@ -209,20 +211,70 @@
 
     <!-- TEXTOS -->
     <details class="card">
-      <summary>Textos y redes</summary>
+      <summary>Textos de la web</summary>
       <div style="margin-top:1rem">
-        <label>Título principal</label>
-        <input type="text" id="h-titulo" />
-        <label>Bajada (texto de abajo del título)</label>
-        <textarea id="h-bajada"></textarea>
+        <p class="hint">Editá acá todos los textos de la web principal. Al terminar tocá “Guardar todo”.</p>
+
+        <h3 class="txt-group">Portada</h3>
         <label>Etiqueta chica de arriba</label>
         <input type="text" id="h-eyebrow" />
+        <label>Título principal</label>
+        <input type="text" id="h-titulo" />
+        <label>Bajada (texto debajo del título)</label>
+        <textarea id="h-bajada"></textarea>
 
-        <h3 style="font-family:var(--font-head);color:var(--navy);margin:1.2rem 0 .3rem;text-transform:uppercase">Transparencia</h3>
-        <div id="transp"></div>
+        <h3 class="txt-group">Sección “Para qué es tu ayuda”</h3>
+        <div class="row row--2">
+          <div><label>Título</label><input type="text" id="t-porqueTitulo" /></div>
+          <div><label>Subtítulo</label><input type="text" id="t-porqueSub" /></div>
+        </div>
+        <div id="porque-items"></div>
+
+        <h3 class="txt-group">Sección “Qué necesitamos”</h3>
+        <div class="row row--2">
+          <div><label>Título</label><input type="text" id="t-mejorasTitulo" /></div>
+          <div><label>Subtítulo</label><input type="text" id="t-mejorasSub" /></div>
+        </div>
+
+        <h3 class="txt-group">Sección “Cómo donar”</h3>
+        <div class="row row--2">
+          <div><label>Título</label><input type="text" id="t-donarTitulo" /></div>
+          <div><label>Subtítulo</label><input type="text" id="t-donarSub" /></div>
+        </div>
+        <div class="row row--2">
+          <div><label>MercadoPago — título</label><input type="text" id="mp-titulo" /></div>
+          <div><label>MercadoPago — descripción</label><input type="text" id="mp-desc" /></div>
+        </div>
+        <div class="row row--2">
+          <div><label>Transferencia — título</label><input type="text" id="tr-titulo" /></div>
+          <div><label>Transferencia — descripción</label><input type="text" id="tr-desc" /></div>
+        </div>
+
+        <h3 class="txt-group">“Dejá tu saludo”</h3>
+        <label>Título</label>
+        <input type="text" id="t-saludoTitulo" />
+        <label>Texto</label>
+        <textarea id="t-saludoTexto"></textarea>
+
+        <h3 class="txt-group">Muro de donantes</h3>
+        <div class="row row--2">
+          <div><label>Título</label><input type="text" id="t-muroTitulo" /></div>
+          <div><label>Subtítulo</label><input type="text" id="t-muroSub" /></div>
+        </div>
+
+        <h3 class="txt-group">Transparencia</h3>
+        <label>Título de la sección</label>
+        <input type="text" id="t-transparenciaTitulo" />
+        <div id="transp" style="margin-top:.6rem"></div>
         <button class="btn btn--ghost btn--sm" id="add-transp">＋ Agregar línea</button>
 
-        <h3 style="font-family:var(--font-head);color:var(--navy);margin:1.2rem 0 .3rem;text-transform:uppercase">Redes del club</h3>
+        <h3 class="txt-group">Pie de página y club</h3>
+        <label>Nota del pie</label>
+        <textarea id="t-footerNota"></textarea>
+        <div class="row row--2">
+          <div><label>Nombre del club</label><input type="text" id="c-nombre" /></div>
+          <div><label>Nombre largo</label><input type="text" id="c-nombreLargo" /></div>
+        </div>
         <div class="row row--2">
           <div><label>Instagram (URL)</label><input type="url" id="c-ig" /></div>
           <div><label>Facebook (URL)</label><input type="url" id="c-fb" /></div>
