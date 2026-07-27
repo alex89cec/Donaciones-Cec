@@ -104,6 +104,37 @@
       <h2 class="section__title">Cómo donar</h2>
       <p class="section__sub">Elegí la forma que más te convenga. Todo aporte, por chico que sea, suma. 💛</p>
       <div class="grid grid--2" id="donar-grid"></div>
+
+      <!-- Dejá tu saludo -->
+      <div class="donform" id="don-form-box">
+        <h3>💬 Dejá tu saludo</h3>
+        <p>Ya donaste? Dejanos tu nombre y un mensaje. Vas a aparecer en el muro y en la transmisión cuando confirmemos tu aporte. 💛</p>
+        <form id="don-form">
+          <div class="donform__row">
+            <input type="text" id="don-nombre" maxlength="40" placeholder="Tu nombre *" required />
+            <input type="number" id="don-monto" min="0" step="100" placeholder="Monto ($) — opcional" />
+          </div>
+          <textarea id="don-mensaje" maxlength="200" placeholder="Tu mensaje (opcional)"></textarea>
+          <div class="donform__foot">
+            <select id="don-metodo" aria-label="Método">
+              <option value="transferencia">Doné por transferencia</option>
+              <option value="mercadopago">Doné por MercadoPago</option>
+              <option value="otro">Otro</option>
+            </select>
+            <button type="submit" class="btn btn--gold" id="don-send">Enviar mi saludo</button>
+          </div>
+          <div class="donform__msg" id="don-msg"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MURO DE DONANTES ================= -->
+  <section class="section section--alt muro" id="muro" hidden>
+    <div class="wrap">
+      <h2 class="section__title">Bancan el streaming 💛💙</h2>
+      <p class="section__sub">Gracias a quienes hacen posible la transmisión del club.</p>
+      <div class="muro__list" id="muro-list"></div>
     </div>
   </section>
 

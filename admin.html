@@ -64,6 +64,20 @@
     .filepick{display:inline-flex}
     .filepick input{display:none}
     .muted{color:var(--muted);font-size:.85rem}
+    /* Donaciones */
+    .don-badge{background:var(--gold);color:var(--navy);font-weight:800;font-size:.75rem;padding:.15rem .55rem;border-radius:999px;vertical-align:middle}
+    .don-tabs{display:flex;gap:.4rem;margin-bottom:.9rem;flex-wrap:wrap}
+    .don-tab{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:.35rem .9rem;font-weight:700;font-size:.85rem;cursor:pointer}
+    .don-tab.is-active{background:var(--navy);color:#fff;border-color:var(--navy)}
+    .don-item{border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;margin-bottom:.7rem;background:#fbfcfe}
+    .don-item__top{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap}
+    .don-item__name{font-weight:700;color:var(--navy)}
+    .don-item__amount{font-family:var(--font-head);font-weight:700;color:var(--navy)}
+    .don-item__meta{font-size:.72rem;color:var(--muted);margin-left:auto;text-transform:uppercase;letter-spacing:.5px}
+    .don-item__msg{color:var(--ink);margin:.35rem 0 .6rem;font-style:italic}
+    .don-item__actions{display:flex;gap:.4rem;flex-wrap:wrap}
+    .don-empty{color:var(--muted);text-align:center;padding:1.2rem}
+    .btn--ok{background:var(--ok);color:#fff}
     .exportbar{position:fixed;left:0;right:0;bottom:0;background:var(--navy-deep);color:#fff;z-index:30;
       box-shadow:0 -6px 20px rgba(0,0,0,.2)}
     .exportbar__in{max-width:960px;margin:0 auto;padding:.7rem 18px;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
@@ -135,18 +149,18 @@
     <!-- META -->
     <section class="card">
       <h2>🔴 Meta en vivo</h2>
-      <p class="hint">Lo que más vas a actualizar: cuánta plata se juntó y cuántas personas donaron.</p>
+      <p class="hint">El <b>objetivo</b> y una <b>base</b> (lo que juntaste por fuera del sitio, ej. efectivo). Las donaciones que confirmes más abajo se <b>suman solas</b> encima de esta base.</p>
       <div class="row row--3">
         <div>
           <label>Objetivo ($)</label>
           <input type="number" id="m-objetivo" min="0" step="1000" />
         </div>
         <div>
-          <label>Recaudado ($)</label>
+          <label>Base recaudado ($)</label>
           <input type="number" id="m-recaudado" min="0" step="1000" />
         </div>
         <div>
-          <label>Donantes</label>
+          <label>Base donantes</label>
           <input type="number" id="m-donantes" min="0" step="1" />
         </div>
       </div>
@@ -154,6 +168,18 @@
       <div class="item__actions" style="margin-top:1rem">
         <button class="btn btn--gold" id="dl-meta">💾 Guardar meta</button>
       </div>
+    </section>
+
+    <!-- DONACIONES -->
+    <section class="card">
+      <h2>💬 Donaciones <span id="don-badge" class="don-badge" hidden></span></h2>
+      <p class="hint">Al <b>confirmar</b> una donación, suma a la meta y aparece en el muro y en el overlay de OBS. <b>Ocultá</b> o <b>borrá</b> lo que no quieras mostrar en la transmisión.</p>
+      <div class="don-tabs">
+        <button type="button" class="don-tab is-active" data-f="pendiente">Pendientes</button>
+        <button type="button" class="don-tab" data-f="confirmada">Confirmadas</button>
+        <button type="button" class="don-tab" data-f="oculta">Ocultas</button>
+      </div>
+      <div id="donaciones-list"></div>
     </section>
 
     <!-- ITEMS -->

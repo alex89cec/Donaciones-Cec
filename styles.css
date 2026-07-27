@@ -273,6 +273,40 @@ a { color: inherit; text-decoration: none; }
 .dcard .btn { margin-top: auto; }
 .dcard__titular { font-size: .82rem; color: var(--muted); margin-top: .4rem; }
 
+/* Dejá tu saludo (formulario) */
+.donform {
+  margin-top: 1.4rem; background: #fff; border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1.6rem; box-shadow: var(--shadow);
+  max-width: 720px; margin-left: auto; margin-right: auto;
+}
+.donform h3 { font-family: var(--font-head); font-weight: 600; color: var(--navy); font-size: 1.4rem; text-transform: uppercase; }
+.donform > p { color: var(--muted); font-size: .95rem; margin: .3rem 0 1rem; }
+.donform input, .donform textarea, .donform select {
+  width: 100%; font-family: var(--font-body); font-size: 1rem; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 10px; padding: .7rem .8rem; background: #fbfcfe;
+}
+.donform input:focus, .donform textarea:focus, .donform select:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+.donform__row { display: grid; grid-template-columns: 1.4fr 1fr; gap: .6rem; margin-bottom: .6rem; }
+.donform textarea { min-height: 64px; resize: vertical; margin-bottom: .6rem; }
+.donform__foot { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.donform__foot select { flex: 1; min-width: 160px; }
+.donform__msg { margin-top: .7rem; font-weight: 600; font-size: .9rem; min-height: 1.1rem; }
+.donform__msg.ok { color: var(--ok); }
+.donform__msg.err { color: #c81e1e; }
+@media (max-width: 560px) { .donform__row { grid-template-columns: 1fr; } }
+
+/* Muro de donantes */
+.muro__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.donor {
+  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--gold);
+  border-radius: var(--radius-sm); padding: 1rem 1.1rem; box-shadow: var(--shadow);
+}
+.donor__top { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.donor__name { font-family: var(--font-head); font-weight: 600; color: var(--navy); font-size: 1.1rem; }
+.donor__amount { font-family: var(--font-head); font-weight: 700; color: var(--gold); }
+.donor__amount--navy { color: var(--navy); }
+.donor__msg { color: var(--muted); font-size: .92rem; margin-top: .35rem; font-style: italic; }
+
 /* Transparencia */
 .transparencia { list-style: none; display: grid; gap: .8rem; }
 .transparencia li {

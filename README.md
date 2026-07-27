@@ -20,7 +20,8 @@ y una **barra de meta que se actualiza en vivo**.
 | `app.js` | Arma la web y muestra la meta en vivo (lee de Firebase). |
 | `firebase-shared.js` | Conexión al proyecto de Firebase (datos públicos). |
 | **`admin.html`** | **Panel de carga** (con login) para editar todo. |
-| `admin.js` | Lógica del panel: login y guardado en Firebase. |
+| `admin.js` | Lógica del panel: login, guardado y moderación de donaciones. |
+| **`overlay.html` / `overlay.js`** | **Overlay para OBS** (alerta, muro y ticker de donantes). |
 | `firestore.rules` | Reglas de seguridad para pegar en Firebase. |
 | `data.json` / `meta.json` | Semilla inicial y **respaldo** por si Firebase falla. |
 | `.github/workflows/` | Deploy automático a GitHub Pages en cada push a `main`. |
@@ -53,6 +54,33 @@ instante**. No hay que bajar ni subir archivos.
 
 ---
 
+## 💬 Donaciones, muro y overlay para OBS
+
+Los donantes dejan su **nombre, monto y mensaje** al donar (formulario en la
+sección "Cómo donar"). Vos los **confirmás** desde el panel (sección
+"Donaciones"). Al confirmar, la donación:
+- suma a la meta (recaudado + donantes),
+- aparece en el **muro de donantes** de la web,
+- salta en el **overlay de OBS** en tiempo real.
+
+Las donaciones sin confirmar **no se muestran** — vos moderás lo que sale al aire.
+
+### Overlay en OBS (Browser Source)
+En OBS: **Fuentes → + → Navegador**, y usá estas URLs (una fuente por widget):
+
+| Widget | URL |
+|---|---|
+| Alerta pop-up | `https://streamcec.com/overlay.html?modo=alerta` |
+| Muro / lista | `https://streamcec.com/overlay.html?modo=muro` |
+| Ticker (franja) | `https://streamcec.com/overlay.html?modo=ticker` |
+| Los tres (preview) | `https://streamcec.com/overlay.html?modo=todo` |
+
+- Fondo **transparente**: se ve solo el widget sobre tu video.
+- Tamaño sugerido 1920×1080; posicioná/recortá cada fuente en OBS.
+- El muro acepta `?limit=8` para cambiar cuántos donantes muestra.
+
+---
+
 ## 🔧 Configuración de Firebase (una vez)
 
 1. Proyecto creado en [console.firebase.google.com](https://console.firebase.google.com).
@@ -63,9 +91,10 @@ instante**. No hay que bajar ni subir archivos.
 5. La config del proyecto está en `firebase-shared.js`.
 
 **Estructura de datos en Firestore:**
-- `config/meta` → `{ objetivo, recaudado, donantes, actualizado }`
+- `config/meta` → `{ objetivo, recaudado, donantes, actualizado }` (recaudado/donantes = base; las donaciones confirmadas se suman encima)
 - `config/contenido` → `{ club, hero, porQue, donar, transparencia }`
 - `mejoras/{id}` → un documento por ítem (`{ orden, titulo, mejora, costo, foto, recurrente, periodo, icono }`)
+- `donaciones/{id}` → `{ nombre, mensaje, monto, metodo, estado, creadoEn, confirmadaEn }`
 
 La **primera vez**, el panel se abre con los datos de ejemplo (de `data.json` /
 `meta.json`); al tocar **“Guardar todo”** quedan cargados en Firestore.

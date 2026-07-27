@@ -190,23 +190,100 @@
     try { pintarMeta(await getJSON("meta.json")); } catch (e) {}
   }
 
+  /* ---------- Meta derivada (base + donaciones confirmadas) ---------- */
+  let metaBase = null;
+  let confSum = 0, confCount = 0, lastConf = "";
+  function recomputeMeta() {
+    if (!metaBase) return;
+    pintarMeta({
+      objetivo: metaBase.objetivo,
+      recaudado: (Number(metaBase.recaudado) || 0) + confSum,
+      donantes: (Number(metaBase.donantes) || 0) + confCount,
+      actualizado: lastConf || metaBase.actualizado
+    });
+  }
+
+  /* ---------- Muro de donantes ---------- */
+  function tsMillis(v) {
+    if (!v) return 0;
+    if (typeof v.toMillis === "function") return v.toMillis();
+    const t = new Date(v).getTime(); return isNaN(t) ? 0 : t;
+  }
+  function renderMuro(donaciones) {
+    const sec = $("#muro");
+    if (!donaciones.length) { sec.hidden = true; return; }
+    sec.hidden = false;
+    $("#muro-list").innerHTML = donaciones.map((d) => {
+      const monto = Number(d.monto) > 0 ? `<span class="donor__amount">${pesos(d.monto)}</span>` : "";
+      const msg = d.mensaje ? `<div class="donor__msg">“${esc(d.mensaje)}”</div>` : "";
+      return `<div class="donor"><div class="donor__top"><span class="donor__name">${esc(d.nombre)}</span>${monto}</div>${msg}</div>`;
+    }).join("");
+  }
+
+  /* ---------- Firebase (cacheado) ---------- */
+  let FB = null;
+  async function fb() { if (!FB) FB = await window.fbLoad(false); return FB; }
+
+  /* ---------- Formulario "dejá tu saludo" ---------- */
+  function bindDonForm() {
+    const form = $("#don-form");
+    if (!form) return;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = ($("#don-nombre").value || "").trim();
+      const mensaje = ($("#don-mensaje").value || "").trim();
+      const monto = Math.max(0, Math.round(Number($("#don-monto").value) || 0));
+      const metodo = $("#don-metodo").value || "otro";
+      const msg = $("#don-msg");
+      if (!nombre) { msg.className = "donform__msg err"; msg.textContent = "Poné tu nombre 🙂"; return; }
+      const btn = $("#don-send"); btn.disabled = true; const prev = btn.textContent; btn.textContent = "Enviando…";
+      try {
+        const { db, fs } = await fb();
+        await fs.addDoc(fs.collection(db, "donaciones"), {
+          nombre: nombre.slice(0, 40), mensaje: mensaje.slice(0, 200), monto: monto,
+          metodo: metodo, estado: "pendiente", creadoEn: fs.serverTimestamp()
+        });
+        form.reset();
+        msg.className = "donform__msg ok";
+        msg.textContent = "¡Gracias! Tu saludo aparecerá cuando confirmemos tu aporte. 💛";
+      } catch (err) {
+        console.error(err);
+        msg.className = "donform__msg err";
+        msg.textContent = "No se pudo enviar. Probá de nuevo en un momento.";
+      } finally { btn.disabled = false; btn.textContent = prev; }
+    });
+  }
+
   /* ---------- Init ----------
      1) Pinta al instante desde los JSON (respaldo): la web nunca queda en blanco.
-     2) Intenta conectar a Firebase para datos EN VIVO; si llega, reemplaza. */
+     2) Conecta a Firebase para datos EN VIVO; si llega, reemplaza. */
   document.addEventListener("DOMContentLoaded", async () => {
+    bindDonForm();
     await fallbackTodo();
     conectarEnVivo();
   });
 
   async function conectarEnVivo() {
     try {
-      const { db, fs } = await window.fbLoad(false);
+      const { db, fs } = await fb();
       fs.onSnapshot(fs.doc(db, "config", "meta"),
-        (snap) => { if (snap.exists()) pintarMeta(snap.data()); }, () => {});
+        (snap) => { if (snap.exists()) { metaBase = snap.data(); recomputeMeta(); } }, () => {});
       fs.onSnapshot(fs.doc(db, "config", "contenido"),
         (snap) => { if (snap.exists()) renderContenido(snap.data()); }, () => {});
       fs.onSnapshot(fs.query(fs.collection(db, "mejoras"), fs.orderBy("orden")),
         (qs) => { if (!qs.empty) renderMejoras(qs.docs.map((d) => d.data())); }, () => {});
+      // Donaciones confirmadas -> muro + meta en vivo
+      fs.onSnapshot(fs.query(fs.collection(db, "donaciones"), fs.where("estado", "==", "confirmada")),
+        (qs) => {
+          const arr = qs.docs.map((d) => d.data());
+          arr.sort((a, b) => tsMillis(b.confirmadaEn || b.creadoEn) - tsMillis(a.confirmadaEn || a.creadoEn));
+          confSum = arr.reduce((s, d) => s + (Number(d.monto) || 0), 0);
+          confCount = arr.length;
+          const nv = arr[0] && (arr[0].confirmadaEn || arr[0].creadoEn);
+          lastConf = nv && typeof nv.toDate === "function" ? nv.toDate().toISOString() : lastConf;
+          renderMuro(arr);
+          recomputeMeta();
+        }, () => {});
     } catch (e) {
       console.warn("Firebase no disponible; queda el respaldo por JSON.", e);
     }

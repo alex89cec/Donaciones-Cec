@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overlay OBS · Streaming CEC Liceo Militar</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#16294a; --navy-deep:#0f1d38; --gold:#f5b41e; --white:#fff;
+      --font-head:"Oswald","Arial Narrow",system-ui,sans-serif;
+      --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    }
+    html,body{margin:0;padding:0;background:transparent;font-family:var(--font-body);overflow:hidden}
+    img{display:block}
+
+    /* Solo se muestra el widget del modo elegido (?modo=alerta|muro|ticker|todo) */
+    #alerta,#muro,#ticker{display:none}
+    body.modo-alerta #alerta{display:block}
+    body.modo-muro #muro{display:block}
+    body.modo-ticker #ticker{display:block}
+    body.modo-todo #alerta,body.modo-todo #muro,body.modo-todo #ticker{display:block}
+
+    /* ---------- ALERTA ---------- */
+    #alerta{
+      position:fixed; top:40px; left:50%;
+      transform:translateX(-50%) translateY(-160%);
+      transition:transform .55s cubic-bezier(.18,.9,.2,1);
+    }
+    #alerta.show{ transform:translateX(-50%) translateY(0); }
+    .alert-card{
+      display:flex; align-items:center; gap:18px;
+      background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);
+      border:2px solid var(--gold); border-radius:20px; padding:18px 26px 18px 20px;
+      box-shadow:0 16px 50px rgba(0,0,0,.5); min-width:420px; max-width:760px;
+    }
+    .alert-logo{ width:72px; height:72px; flex:0 0 72px; }
+    .alert-title{ font-family:var(--font-head); font-weight:700; color:#fff; font-size:1.7rem; line-height:1.1; text-transform:uppercase; }
+    .alert-amount{ font-family:var(--font-head); font-weight:700; color:var(--gold); font-size:2rem; line-height:1; margin-top:2px; }
+    .alert-msg{ color:#dbe4f3; font-size:1.05rem; font-style:italic; margin-top:6px; }
+
+    /* ---------- MURO ---------- */
+    #muro{ position:fixed; top:24px; right:24px; width:360px; max-height:92vh; overflow:hidden; }
+    .muro-head{
+      font-family:var(--font-head); font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+      color:var(--navy); background:var(--gold); border-radius:14px 14px 0 0; padding:12px 16px; font-size:1.15rem;
+      box-shadow:0 6px 20px rgba(0,0,0,.35);
+    }
+    .muro-body{ background:rgba(15,29,56,.92); border-radius:0 0 14px 14px; padding:10px; box-shadow:0 16px 40px rgba(0,0,0,.45); }
+    .muro-row{ padding:9px 12px; border-left:3px solid var(--gold); background:rgba(255,255,255,.06); border-radius:8px; margin-bottom:8px; }
+    .muro-row:last-child{ margin-bottom:0; }
+    .muro-row__top{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+    .muro-row__name{ font-family:var(--font-head); font-weight:600; color:#fff; font-size:1.1rem; }
+    .muro-row__amount{ font-family:var(--font-head); font-weight:700; color:var(--gold); font-size:1.05rem; }
+    .muro-row__msg{ color:#c9d5ea; font-size:.86rem; font-style:italic; margin-top:2px; }
+
+    /* ---------- TICKER ---------- */
+    #ticker{
+      position:fixed; left:0; right:0; bottom:0; height:56px;
+      background:linear-gradient(90deg,var(--navy-deep),var(--navy));
+      border-top:3px solid var(--gold); overflow:hidden;
+    }
+    #ticker .tag{
+      position:absolute; left:0; top:0; bottom:0; display:flex; align-items:center; gap:8px; padding:0 18px;
+      background:var(--gold); color:var(--navy); font-family:var(--font-head); font-weight:700;
+      text-transform:uppercase; letter-spacing:.5px; z-index:2; box-shadow:6px 0 12px rgba(0,0,0,.25);
+    }
+    #ticker .track{
+      position:absolute; left:0; top:0; height:100%; display:flex; align-items:center;
+      white-space:nowrap; animation:scroll 40s linear infinite; will-change:transform;
+    }
+    #ticker .tk{ color:#fff; font-size:1.15rem; padding:0 30px; }
+    #ticker .tk b{ color:var(--gold); }
+    #ticker .tk .amt{ font-family:var(--font-head); color:var(--gold); font-weight:700; }
+    @keyframes scroll{ from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  </style>
+</head>
+<body>
+  <!-- Alerta pop-up -->
+  <div id="alerta"></div>
+
+  <!-- Muro / lista -->
+  <div id="muro">
+    <div class="muro-head">Bancan el streaming 💛💙</div>
+    <div class="muro-body" id="muro-body"></div>
+  </div>
+
+  <!-- Ticker -->
+  <div id="ticker">
+    <div class="tag">💛 Gracias</div>
+    <div class="track" id="ticker-track"></div>
+  </div>
+
+  <script src="firebase-shared.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>

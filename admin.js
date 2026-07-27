@@ -34,6 +34,7 @@
     .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const num = (v) => Math.max(0, Math.round(Number(v) || 0));
   const pesos = (n) => "$" + num(n).toLocaleString("es-AR");
+  const tsMillis = (v) => (v && typeof v.toMillis === "function") ? v.toMillis() : (v ? (new Date(v).getTime() || 0) : 0);
 
   let toastTimer;
   function toast(msg) {
@@ -358,6 +359,75 @@
     }
   }
 
+  /* ---------- Donaciones (moderación) ---------- */
+  let donaciones = [], donFilter = "pendiente", donUnsub = null;
+
+  function subscribeDonaciones() {
+    if (donUnsub) return;
+    donUnsub = fs.onSnapshot(fs.collection(db, "donaciones"), (qs) => {
+      donaciones = qs.docs.map((d) => Object.assign({ _id: d.id }, d.data()));
+      donaciones.sort((a, b) => tsMillis(b.creadoEn) - tsMillis(a.creadoEn));
+      renderDonaciones();
+    }, (e) => { console.error("donaciones:", e); });
+  }
+
+  function renderDonaciones() {
+    const pend = donaciones.filter((d) => (d.estado || "pendiente") === "pendiente").length;
+    const badge = $("#don-badge");
+    if (pend > 0) { badge.hidden = false; badge.textContent = pend + " pendiente" + (pend > 1 ? "s" : ""); }
+    else { badge.hidden = true; }
+
+    const list = donaciones.filter((d) => (d.estado || "pendiente") === donFilter);
+    const cont = $("#donaciones-list");
+    if (!list.length) {
+      const t = donFilter === "pendiente" ? "pendientes" : (donFilter === "confirmada" ? "confirmadas" : "ocultas");
+      cont.innerHTML = `<div class="don-empty">No hay donaciones ${t}.</div>`;
+      return;
+    }
+    cont.innerHTML = list.map((d) => {
+      const monto = num(d.monto) > 0 ? `<span class="don-item__amount">${pesos(d.monto)}</span>` : "";
+      const fecha = (d.creadoEn && d.creadoEn.toDate) ? d.creadoEn.toDate().toLocaleString("es-AR") : "";
+      const msg = d.mensaje ? `<div class="don-item__msg">“${attr(d.mensaje)}”</div>` : "";
+      let acc;
+      if (d.estado === "confirmada") {
+        acc = `<button class="btn btn--ghost btn--sm" data-act="ocultar" data-id="${d._id}">Ocultar</button>
+               <button class="btn btn--danger btn--sm" data-act="eliminar" data-id="${d._id}">Eliminar</button>`;
+      } else if (d.estado === "oculta") {
+        acc = `<button class="btn btn--ok btn--sm" data-act="confirmar" data-id="${d._id}">✅ Confirmar</button>
+               <button class="btn btn--danger btn--sm" data-act="eliminar" data-id="${d._id}">Eliminar</button>`;
+      } else {
+        acc = `<button class="btn btn--ok btn--sm" data-act="confirmar" data-id="${d._id}">✅ Confirmar</button>
+               <button class="btn btn--ghost btn--sm" data-act="ocultar" data-id="${d._id}">Ocultar</button>
+               <button class="btn btn--danger btn--sm" data-act="eliminar" data-id="${d._id}">Eliminar</button>`;
+      }
+      return `<div class="don-item">
+        <div class="don-item__top"><span class="don-item__name">${attr(d.nombre)}</span>${monto}<span class="don-item__meta">${attr(d.metodo || "")} · ${attr(fecha)}</span></div>
+        ${msg}
+        <div class="don-item__actions">${acc}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function bindDonacionesUI() {
+    document.querySelectorAll(".don-tab").forEach((t) => {
+      t.addEventListener("click", () => {
+        donFilter = t.getAttribute("data-f");
+        document.querySelectorAll(".don-tab").forEach((x) => x.classList.toggle("is-active", x === t));
+        renderDonaciones();
+      });
+    });
+    $("#donaciones-list").addEventListener("click", async (e) => {
+      const b = e.target.closest("button[data-act]");
+      if (!b) return;
+      const id = b.getAttribute("data-id"), act = b.getAttribute("data-act");
+      try {
+        if (act === "confirmar") { await fs.updateDoc(fs.doc(db, "donaciones", id), { estado: "confirmada", confirmadaEn: fs.serverTimestamp() }); toast("Confirmada ✓ Ya está en el muro y el overlay"); }
+        else if (act === "ocultar") await fs.updateDoc(fs.doc(db, "donaciones", id), { estado: "oculta" });
+        else if (act === "eliminar") { if (confirm("¿Borrar esta donación para siempre?")) await fs.deleteDoc(fs.doc(db, "donaciones", id)); }
+      } catch (err) { alert("No se pudo: " + (err && err.message ? err.message : err)); }
+    });
+  }
+
   /* ---------- Login ---------- */
   function bindLogin() {
     $("#gate-form").addEventListener("submit", async (e) => {
@@ -389,6 +459,7 @@
       fillForm();
       markClean();
       document.body.classList.remove("locked");
+      subscribeDonaciones();
     } catch (e) {
       console.error(e);
       alert("Entraste, pero no se pudieron leer los datos: " + (e && e.message ? e.message : e) +
@@ -398,7 +469,7 @@
 
   /* ---------- Init ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
-    bindStatic(); bindItems(); bindTransp(); bindButtons();
+    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI();
     try {
       const fb = await withTimeout(window.fbLoad(true), 12000, "No se pudo conectar con Firebase");
       db = fb.db; fs = fb.fs; auth = fb.auth; authMod = fb.authMod;

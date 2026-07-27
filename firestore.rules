@@ -3,24 +3,45 @@ rules_version = '2';
 // Reglas de seguridad de Firestore para el sitio del club.
 // Pegá TODO esto en: Firebase → Firestore Database → pestaña "Reglas".
 //
-// ⚠️ Reemplazá TU-EMAIL-ADMIN@ejemplo.com por el email del usuario que
-// creaste en Authentication → Users (con el que te logueás al panel).
+// ⚠️ Reemplazá TU-EMAIL-ADMIN@ejemplo.com (aparece 3 veces) por el email del
+// usuario que creaste en Authentication → Users (con el que te logueás).
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Cualquiera puede LEER (necesario para mostrar la web pública).
-    match /{document=**} {
-      allow read: if true;
-    }
-
-    // Solo TU usuario puede ESCRIBIR / editar.
+    // Contenido y meta: lectura pública, escritura solo tuya.
     match /config/{doc} {
+      allow read: if true;
       allow write: if request.auth != null
         && request.auth.token.email == "TU-EMAIL-ADMIN@ejemplo.com";
     }
     match /mejoras/{doc} {
+      allow read: if true;
       allow write: if request.auth != null
+        && request.auth.token.email == "TU-EMAIL-ADMIN@ejemplo.com";
+    }
+
+    // Donaciones (nombre + mensaje + monto):
+    match /donaciones/{doc} {
+      // Cualquiera puede DEJAR una donación, pero siempre entra como "pendiente"
+      // (nadie puede autoconfirmarse ni saltarse la moderación).
+      allow create: if request.resource.data.estado == "pendiente"
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 40
+        && request.resource.data.mensaje is string
+        && request.resource.data.mensaje.size() <= 200
+        && request.resource.data.monto is number
+        && request.resource.data.monto >= 0
+        && request.resource.data.monto <= 100000000;
+
+      // El público solo LEE las confirmadas (muro y overlay).
+      // Vos (admin) leés todas.
+      allow read: if resource.data.estado == "confirmada"
+        || (request.auth != null && request.auth.token.email == "TU-EMAIL-ADMIN@ejemplo.com");
+
+      // Solo vos confirmás / ocultás / borrás.
+      allow update, delete: if request.auth != null
         && request.auth.token.email == "TU-EMAIL-ADMIN@ejemplo.com";
     }
   }
