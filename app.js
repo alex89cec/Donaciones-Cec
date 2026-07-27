@@ -362,6 +362,8 @@
   document.addEventListener("DOMContentLoaded", async () => {
     bindDonForm();
     bindCarousel();
+    const home = $("#nav-home");
+    if (home) home.addEventListener("click", (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); });
     try { const c = await getJSON("cotizacion.json"); RATE = Number(c.usd) || 0; } catch (e) {}
     await fallbackTodo();
     conectarEnVivo();
