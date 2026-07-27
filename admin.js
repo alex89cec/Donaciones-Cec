@@ -26,7 +26,7 @@
       },
       transparencia: []
     },
-    meta: { objetivo: 0, recaudado: 0, donantes: 0, actualizado: "", moneda: "ARS" }
+    meta: { objetivo: 0, recaudado: 0, donantes: 0, actualizado: "", moneda: "ARS", objetivoModo: "manual" }
   };
 
   /* ---------- Helpers ---------- */
@@ -35,6 +35,19 @@
     .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const num = (v) => Math.max(0, Math.round(Number(v) || 0));
   const pesos = (n) => ((state.meta && state.meta.moneda === "USD") ? "US$ " : "$") + num(n).toLocaleString("es-AR");
+  let RATE = 0;
+  const conv = (n, from, to) => { n = num(n); if (!RATE || from === to) return n; return from === "USD" ? n * RATE : n / RATE; };
+  function autoObjetivo() {
+    const cur = (state.meta && state.meta.moneda === "USD") ? "USD" : "ARS";
+    return Math.round((state.data && state.data.mejoras || []).reduce((a, m) => a + conv(m.costo, m.moneda === "USD" ? "USD" : "ARS", cur), 0));
+  }
+  const esAuto = () => !!(state.meta && state.meta.objetivoModo === "auto");
+  const objetivoActual = () => esAuto() ? autoObjetivo() : num(state.meta && state.meta.objetivo);
+  function refreshObjetivo() {
+    const inp = $("#m-objetivo");
+    if (!inp) return;
+    if (esAuto()) { inp.value = autoObjetivo(); inp.disabled = true; } else { inp.disabled = false; }
+  }
   const tsMillis = (v) => (v && typeof v.toMillis === "function") ? v.toMillis() : (v ? (new Date(v).getTime() || 0) : 0);
 
   let toastTimer;
@@ -49,6 +62,7 @@
     dirty = true;
     $("#draft-status").textContent = "Cambios sin guardar";
     $("#draft-status").style.background = "rgba(245,180,30,.25)";
+    refreshObjetivo();
     actualizarPreviewMeta();
   }
   function markClean() {
@@ -81,6 +95,7 @@
     const mSnap = await fs.getDoc(fs.doc(db, "config", "meta"));
     state.meta = mSnap.exists() ? mSnap.data() : (seedMeta.objetivo != null ? seedMeta : DEFAULTS.meta);
     state.meta.moneda = state.meta.moneda === "USD" ? "USD" : "ARS";
+    state.meta.objetivoModo = state.meta.objetivoModo === "auto" ? "auto" : "manual";
 
     // contenido
     const cSnap = await fs.getDoc(fs.doc(db, "config", "contenido"));
@@ -105,12 +120,14 @@
   /* ---------- Guardar (Firestore) ---------- */
   async function saveMeta() {
     state.meta.actualizado = new Date().toISOString();
+    const modo = esAuto() ? "auto" : "manual";
     await fs.setDoc(fs.doc(db, "config", "meta"), {
-      objetivo: num(state.meta.objetivo),
+      objetivo: modo === "auto" ? autoObjetivo() : num(state.meta.objetivo),
       recaudado: num(state.meta.recaudado),
       donantes: num(state.meta.donantes),
       actualizado: state.meta.actualizado,
-      moneda: state.meta.moneda === "USD" ? "USD" : "ARS"
+      moneda: state.meta.moneda === "USD" ? "USD" : "ARS",
+      objetivoModo: modo
     });
   }
   async function saveContenido() {
@@ -169,6 +186,8 @@
     $("#m-recaudado").value = m.recaudado || 0;
     $("#m-donantes").value = m.donantes || 0;
     setMonedaUI(m.moneda);
+    setMetaModoUI(m.objetivoModo);
+    refreshObjetivo();
 
     $("#mp-activo").checked = !!(d.donar.mercadopago && d.donar.mercadopago.activo);
     $("#mp-url").value = (d.donar.mercadopago && d.donar.mercadopago.url) || "";
@@ -230,8 +249,9 @@
 
   function actualizarPreviewMeta() {
     const m = state.meta;
-    const pct = num(m.objetivo) > 0 ? Math.min(100, (num(m.recaudado) / num(m.objetivo)) * 100) : 0;
-    $("#metaprev").textContent = `Vista previa: ${pesos(m.recaudado)} de ${pesos(m.objetivo)} · ${Math.round(pct)}% · ${num(m.donantes)} donantes`;
+    const obj = objetivoActual();
+    const pct = obj > 0 ? Math.min(100, (num(m.recaudado) / obj) * 100) : 0;
+    $("#metaprev").textContent = `Vista previa: ${pesos(m.recaudado)} de ${pesos(obj)} · ${Math.round(pct)}% · ${num(m.donantes)} donantes${esAuto() ? " · (meta automática)" : ""}`;
   }
 
   /* ---------- Moneda ---------- */
@@ -249,6 +269,24 @@
       setMonedaUI(m);
       markDirty();
       renderItems(); renderDonaciones(); actualizarPreviewMeta();
+    });
+  }
+
+  /* ---------- Modo de meta (manual / automática) ---------- */
+  function setMetaModoUI(modo) {
+    const cur = modo === "auto" ? "auto" : "manual";
+    document.querySelectorAll("#meta-modo-seg .seg__opt").forEach((o) => o.classList.toggle("is-active", o.getAttribute("data-mo") === cur));
+  }
+  function bindMetaModo() {
+    const seg = $("#meta-modo-seg");
+    if (!seg) return;
+    seg.addEventListener("click", (e) => {
+      const b = e.target.closest(".seg__opt"); if (!b) return;
+      const modo = b.getAttribute("data-mo") === "auto" ? "auto" : "manual";
+      if (state.meta) state.meta.objetivoModo = modo;
+      setMetaModoUI(modo);
+      refreshObjetivo();
+      markDirty();
     });
   }
 
@@ -625,7 +663,8 @@
 
   /* ---------- Init ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
-    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI(); bindPorque(); bindCropper(); bindMoneda();
+    bindStatic(); bindItems(); bindTransp(); bindButtons(); bindDonacionesUI(); bindPorque(); bindCropper(); bindMoneda(); bindMetaModo();
+    try { const c = await getJSON("cotizacion.json"); RATE = Number(c.usd) || 0; } catch (e) {}
     try {
       const fb = await withTimeout(window.fbLoad(true), 12000, "No se pudo conectar con Firebase");
       db = fb.db; fs = fb.fs; auth = fb.auth; authMod = fb.authMod;

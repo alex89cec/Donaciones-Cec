@@ -87,7 +87,7 @@
   }
 
   /* ---------- Render: mejoras ---------- */
-  let lastMejoras = [], lastDon = [];
+  let lastMejoras = [], lastDon = [], itemsSumSite = 0;
   function renderMejoras(items) {
     items = items || [];
     lastMejoras = items;
@@ -121,6 +121,7 @@
     const curOf = (m) => (m.moneda === "USD" ? "USD" : "ARS");
     const unaVez = items.filter((m) => !m.recurrente).reduce((a, m) => a + conv(m.costo, curOf(m), MONEDA), 0);
     const mensual = items.filter((m) => m.recurrente).reduce((a, m) => a + conv(m.costo, curOf(m), MONEDA), 0);
+    itemsSumSite = unaVez + mensual; // cada ítem una sola vez (el mensual también)
     let html = `<div class="mejoras__total-row"><span>Equipamiento (por única vez)</span><b>${pesos(unaVez)}</b></div>`;
     if (mensual > 0) {
       html += `<div class="mejoras__total-row mejoras__total-row--sub"><span>Gastos mensuales</span><b>${pesos(mensual)} <em>/ mes</em></b></div>`;
@@ -230,7 +231,7 @@
   function recomputeMeta() {
     if (!metaBase) return;
     pintarMeta({
-      objetivo: metaBase.objetivo,
+      objetivo: (metaBase.objetivoModo === "auto") ? itemsSumSite : metaBase.objetivo,
       recaudado: (Number(metaBase.recaudado) || 0) + confSum,
       donantes: (Number(metaBase.donantes) || 0) + confCount,
       actualizado: lastConf || metaBase.actualizado
@@ -362,7 +363,7 @@
       fs.onSnapshot(fs.doc(db, "config", "contenido"),
         (snap) => { if (snap.exists()) renderContenido(snap.data()); }, () => {});
       fs.onSnapshot(fs.query(fs.collection(db, "mejoras"), fs.orderBy("orden")),
-        (qs) => { if (!qs.empty) renderMejoras(qs.docs.map((d) => d.data())); }, () => {});
+        (qs) => { if (!qs.empty) { renderMejoras(qs.docs.map((d) => d.data())); recomputeMeta(); } }, () => {});
       // Donaciones confirmadas -> muro + meta en vivo
       fs.onSnapshot(fs.query(fs.collection(db, "donaciones"), fs.where("estado", "==", "confirmada")),
         (qs) => {
