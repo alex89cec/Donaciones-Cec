@@ -116,4 +116,15 @@ y abrí `http://localhost:8080` (sin internet a Firebase, usa el respaldo JSON).
 
 ---
 
+## 💵 Moneda y cotización del dólar
+
+- Cada ítem puede estar en **pesos (ARS)** o **dólares (USD)** — se elige en el panel.
+- En la web, cada precio muestra su equivalente con la **cotización del dólar blue**
+  (`$220.000 ≈ US$ 141`), tomada de **dolarhoy.com**.
+- La cotización se guarda en `cotizacion.json` y se **actualiza sola una vez por mes**
+  mediante una tarea programada (`.github/workflows/cotizacion.yml`, que corre
+  `scripts/cotizacion.py`). También se puede correr a mano desde la pestaña *Actions*.
+
+---
+
 Campaña solidaria de la comunidad del Liceo. Colores y escudo del club.

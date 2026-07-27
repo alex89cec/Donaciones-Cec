@@ -11,8 +11,14 @@
     String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  let MONEDA = "ARS";
-  const pesos = (n) => (MONEDA === "USD" ? "US$ " : "$") + Math.round(Number(n) || 0).toLocaleString("es-AR");
+  let MONEDA = "ARS", RATE = 0;
+  const fmt = (n, cur) => ((cur === "USD") ? "US$ " : "$") + Math.round(Number(n) || 0).toLocaleString("es-AR");
+  const pesos = (n) => fmt(n, MONEDA);
+  const conv = (n, from, to) => {
+    n = Number(n) || 0;
+    if (!RATE || from === to) return n;
+    return from === "USD" ? n * RATE : n / RATE;
+  };
 
   function haceCuanto(iso) {
     const t = new Date(iso).getTime();
@@ -92,9 +98,13 @@
         ? `<div class="card__media"><img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" />${doneMark}</div>`
         : `<div class="card__media card__media--empty"><span>${esc(m.icono || "🏉")}</span>${doneMark}</div>`;
       const badges = (m.recurrente ? `<span class="card__tag">Mensual</span>` : "") + (done ? `<span class="card__tag card__tag--ok">Conseguido</span>` : "");
+      const cur = m.moneda === "USD" ? "USD" : "ARS";
+      const other = cur === "USD" ? "ARS" : "USD";
+      const nativo = fmt(m.costo, cur);
+      const conversion = (RATE && Number(m.costo) > 0) ? ` <span class="card__conv">≈ ${fmt(conv(m.costo, cur, other), other)}</span>` : "";
       const costo = m.recurrente
-        ? `<div class="card__cost"><small>Abono ${esc(m.periodo || "mes")}</small>${pesos(m.costo)} <span class="per">/ ${esc(m.periodo || "mes")}</span></div>`
-        : `<div class="card__cost"><small>Costo estimado</small>${pesos(m.costo)}</div>`;
+        ? `<div class="card__cost"><small>Abono ${esc(m.periodo || "mes")}</small>${nativo} <span class="per">/ ${esc(m.periodo || "mes")}</span>${conversion}</div>`
+        : `<div class="card__cost"><small>Costo estimado</small>${nativo}${conversion}</div>`;
       const link = m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener" class="card__link">Ver producto ↗</a>` : "";
       return `
         <article class="card${done ? " card--done" : ""}">
@@ -108,12 +118,14 @@
         </article>`;
     }).join("");
 
-    const unaVez = items.filter((m) => !m.recurrente).reduce((a, m) => a + (Number(m.costo) || 0), 0);
-    const mensual = items.filter((m) => m.recurrente).reduce((a, m) => a + (Number(m.costo) || 0), 0);
+    const curOf = (m) => (m.moneda === "USD" ? "USD" : "ARS");
+    const unaVez = items.filter((m) => !m.recurrente).reduce((a, m) => a + conv(m.costo, curOf(m), MONEDA), 0);
+    const mensual = items.filter((m) => m.recurrente).reduce((a, m) => a + conv(m.costo, curOf(m), MONEDA), 0);
     let html = `<div class="mejoras__total-row"><span>Equipamiento (por única vez)</span><b>${pesos(unaVez)}</b></div>`;
     if (mensual > 0) {
       html += `<div class="mejoras__total-row mejoras__total-row--sub"><span>Gastos mensuales</span><b>${pesos(mensual)} <em>/ mes</em></b></div>`;
     }
+    if (RATE) html += `<div class="mejoras__cotiz">Cotización dólar blue: US$ 1 = ${fmt(RATE, "ARS")} · dolarhoy.com</div>`;
     $("#mejoras-total").innerHTML = html;
   }
 
@@ -331,6 +343,7 @@
   document.addEventListener("DOMContentLoaded", async () => {
     bindDonForm();
     bindCarousel();
+    try { const c = await getJSON("cotizacion.json"); RATE = Number(c.usd) || 0; } catch (e) {}
     await fallbackTodo();
     conectarEnVivo();
   });

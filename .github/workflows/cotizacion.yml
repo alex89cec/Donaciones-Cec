@@ -1,0 +1,32 @@
+name: Actualizar cotización del dólar
+
+# Tarea programada: actualiza la cotización del dólar blue (dolarhoy.com)
+# el día 1 de cada mes. También se puede correr a mano desde Actions.
+on:
+  schedule:
+    - cron: "0 12 1 * *"   # día 1 de cada mes, 12:00 UTC (~09:00 ART)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Obtener cotización (dólar blue)
+        run: python3 scripts/cotizacion.py
+
+      - name: Commitear si cambió
+        run: |
+          if git diff --quiet -- cotizacion.json; then
+            echo "Sin cambios en la cotización."
+            exit 0
+          fi
+          git config user.name "cotizacion-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cotizacion.json
+          git commit -m "Actualizar cotización del dólar (automático)"
+          git push

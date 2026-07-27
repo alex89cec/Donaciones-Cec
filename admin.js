@@ -131,7 +131,7 @@
       const payload = {
         orden: i, icono: m.icono || "", foto: m.foto || "", titulo: m.titulo || "",
         mejora: m.mejora || "", costo: num(m.costo), recurrente: !!m.recurrente, periodo: m.periodo || "mes",
-        link: m.link || "", logrado: !!m.logrado
+        link: m.link || "", logrado: !!m.logrado, moneda: m.moneda === "USD" ? "USD" : "ARS"
       };
       if (m._id) { await fs.setDoc(fs.doc(db, "mejoras", m._id), payload); keep.add(m._id); }
       else { const ref = await fs.addDoc(fs.collection(db, "mejoras"), payload); m._id = ref.id; keep.add(ref.id); }
@@ -266,7 +266,15 @@
             <label>Qué mejora / descripción</label>
             <textarea data-i="${i}" data-k="mejora" placeholder="Ej: Imagen nítida de todo el partido.">${attr(m.mejora)}</textarea>
             <div class="row row--3">
-              <div><label>Costo ($)</label><input type="number" data-i="${i}" data-k="costo" min="0" step="1000" value="${num(m.costo)}" /></div>
+              <div><label>Costo</label>
+                <div style="display:flex;gap:.35rem">
+                  <select data-i="${i}" data-k="moneda" style="width:auto;flex:0 0 auto">
+                    <option value="ARS"${m.moneda === "USD" ? "" : " selected"}>$ ARS</option>
+                    <option value="USD"${m.moneda === "USD" ? " selected" : ""}>US$ USD</option>
+                  </select>
+                  <input type="number" data-i="${i}" data-k="costo" min="0" step="1000" value="${num(m.costo)}" style="flex:1;min-width:0" />
+                </div>
+              </div>
               <div><label>Emoji (si no hay foto)</label><input type="text" data-i="${i}" data-k="icono" value="${attr(m.icono)}" maxlength="4" /></div>
               <div><label>Período</label><input type="text" data-i="${i}" data-k="periodo" value="${attr(m.periodo || "mes")}" placeholder="mes" /></div>
             </div>
@@ -321,7 +329,7 @@
       renderItems(); markDirty();
     });
     $("#add-item").addEventListener("click", () => {
-      state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes", link: "", logrado: false });
+      state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes", link: "", logrado: false, moneda: (state.meta && state.meta.moneda === "USD") ? "USD" : "ARS" });
       renderItems(); markDirty();
       $("#items").lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
     });
