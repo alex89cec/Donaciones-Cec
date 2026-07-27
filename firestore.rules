@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para el sitio del club.
+// Pegá TODO esto en: Firebase → Firestore Database → pestaña "Reglas".
+//
+// ⚠️ Reemplazá TU-EMAIL-ADMIN@ejemplo.com por el email del usuario que
+// creaste en Authentication → Users (con el que te logueás al panel).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Cualquiera puede LEER (necesario para mostrar la web pública).
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    // Solo TU usuario puede ESCRIBIR / editar.
+    match /config/{doc} {
+      allow write: if request.auth != null
+        && request.auth.token.email == "TU-EMAIL-ADMIN@ejemplo.com";
+    }
+    match /mejoras/{doc} {
+      allow write: if request.auth != null
+        && request.auth.token.email == "TU-EMAIL-ADMIN@ejemplo.com";
+    }
+  }
+}

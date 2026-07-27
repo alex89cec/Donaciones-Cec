@@ -1,81 +1,22 @@
 /* =====================================================================
-   admin.js — Panel de carga. Edita el contenido y la meta, y exporta
-   data.json / meta.json para subir al repo. Guarda un borrador local.
+   admin.js — Panel de carga con LOGIN REAL (Firebase Auth) y guardado
+   directo en Firestore. Ya no hace falta bajar/subir archivos.
    ===================================================================== */
 (function () {
   "use strict";
 
-  const DRAFT_KEY = "cec_admin_draft";
-  const AUTH_SOURCE = "auth.json";
-  const SESSION_KEY = "cec_admin_ok";
-  // Hash de respaldo (contraseña por defecto) por si no se puede leer auth.json.
-  const DEFAULT_HASH = "1699edf374ff61c522deba2f1fe61482ab65b8f1047e29b1e92c99f3fe14fbc7";
+  // Piezas de Firebase (se cargan en init)
+  let db = null, fs = null, auth = null, authMod = null;
 
-  /* ---------- SHA-256 (para no guardar la contraseña en texto plano) ---------- */
-  function sha256(ascii) {
-    function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
-    var mathPow = Math.pow, maxWord = mathPow(2, 32), L = "length";
-    var i, j, result = "", words = [];
-    var asciiBitLength = ascii[L] * 8;
-    var hash = sha256.h = sha256.h || [];
-    var k = sha256.k = sha256.k || [];
-    var primeCounter = k[L];
-    var isComposite = {};
-    for (var candidate = 2; primeCounter < 64; candidate++) {
-      if (!isComposite[candidate]) {
-        for (i = 0; i < 313; i += candidate) { isComposite[i] = candidate; }
-        hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
-        k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-      }
-    }
-    ascii += "\x80";
-    while (ascii[L] % 64 - 56) ascii += "\x00";
-    for (i = 0; i < ascii[L]; i++) {
-      j = ascii.charCodeAt(i);
-      if (j >> 8) return;
-      words[i >> 2] |= j << ((3 - i) % 4) * 8;
-    }
-    words[words[L]] = ((asciiBitLength / maxWord) | 0);
-    words[words[L]] = (asciiBitLength);
-    for (j = 0; j < words[L];) {
-      var w = words.slice(j, j += 16);
-      var oldHash = hash;
-      hash = hash.slice(0, 8);
-      for (i = 0; i < 64; i++) {
-        var w15 = w[i - 15], w2 = w[i - 2];
-        var a = hash[0], e = hash[4];
-        var temp1 = hash[7]
-          + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-          + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i]
-          + (w[i] = (i < 16) ? w[i] : (
-              w[i - 16]
-              + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-              + w[i - 7]
-              + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-            ) | 0);
-        var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-          + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-        hash = [(temp1 + temp2) | 0].concat(hash);
-        hash[4] = (hash[4] + temp1) | 0;
-      }
-      for (i = 0; i < 8; i++) { hash[i] = (hash[i] + oldHash[i]) | 0; }
-    }
-    for (i = 0; i < 8; i++) {
-      for (j = 3; j + 1; j--) {
-        var b = (hash[i] >> (j * 8)) & 255;
-        result += ((b < 16) ? 0 : "") + b.toString(16);
-      }
-    }
-    return result;
-  }
-  function hashPassword(pw) { return sha256(unescape(encodeURIComponent(String(pw)))); }
+  // Estado en memoria del formulario
+  let state = { data: null, meta: null };
+  let loadedMejoraIds = new Set(); // ids de mejoras que existen en Firestore
+  let dirty = false;
 
-  // Respaldo por si no se pueden leer los .json (ej: abierto sin servidor)
   const DEFAULTS = {
     data: {
-      club: { nombre: "CEC Liceo Militar", nombreLargo: "Centro de Ex Cadetes — Liceo Militar Gral. San Martín",
-        canalYoutube: "", instagram: "", facebook: "" },
-      hero: { eyebrow: "Streaming del club · Rugby", titulo: "Ayudanos a mejorar la transmisión de los partidos", bajada: "" },
+      club: { nombre: "CEC Liceo Militar", nombreLargo: "", canalYoutube: "", instagram: "", facebook: "" },
+      hero: { eyebrow: "Streaming del club · Rugby", titulo: "", bajada: "" },
       porQue: [],
       mejoras: [],
       donar: {
@@ -86,8 +27,6 @@
     },
     meta: { objetivo: 0, recaudado: 0, donantes: 0, actualizado: "" }
   };
-
-  let state = { data: null, meta: null };
 
   /* ---------- Helpers ---------- */
   const $ = (s) => document.querySelector(s);
@@ -101,42 +40,119 @@
     const el = $("#toast");
     el.textContent = msg; el.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), 1900);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
   }
 
-  async function tryFetch(url, fallback) {
-    try {
-      const r = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
-      if (!r.ok) throw 0;
-      return await r.json();
-    } catch (e) { return JSON.parse(JSON.stringify(fallback)); }
-  }
-
-  function saveDraft() {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
-      $("#draft-status").textContent = "Borrador guardado ✓";
-    } catch (e) {}
+  function markDirty() {
+    dirty = true;
+    $("#draft-status").textContent = "Cambios sin guardar";
+    $("#draft-status").style.background = "rgba(245,180,30,.25)";
     actualizarPreviewMeta();
   }
+  function markClean() {
+    dirty = false;
+    $("#draft-status").textContent = "Todo guardado ✓";
+    $("#draft-status").style.background = "rgba(22,163,74,.3)";
+  }
 
-  /* ---------- Carga inicial ---------- */
-  async function load() {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    if (draft) {
-      try {
-        state = JSON.parse(draft);
-        if (state && state.data && state.meta) return;
-      } catch (e) {}
+  async function getJSON(url) {
+    const r = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+  function withTimeout(promise, ms, msg) {
+    return Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error(msg || "timeout")), ms))
+    ]);
+  }
+
+  /* ---------- Cargar datos (Firestore, con semilla de los JSON) ---------- */
+  async function loadData() {
+    let seed = {}, seedMeta = {};
+    try { seed = await getJSON("data.json"); } catch (e) {}
+    try { seedMeta = await getJSON("meta.json"); } catch (e) {}
+
+    state = { data: JSON.parse(JSON.stringify(DEFAULTS.data)), meta: JSON.parse(JSON.stringify(DEFAULTS.meta)) };
+
+    // meta
+    const mSnap = await fs.getDoc(fs.doc(db, "config", "meta"));
+    state.meta = mSnap.exists() ? mSnap.data() : (seedMeta.objetivo != null ? seedMeta : DEFAULTS.meta);
+
+    // contenido
+    const cSnap = await fs.getDoc(fs.doc(db, "config", "contenido"));
+    const c = cSnap.exists() ? cSnap.data() : seed;
+    state.data.club = c.club || seed.club || DEFAULTS.data.club;
+    state.data.hero = c.hero || seed.hero || DEFAULTS.data.hero;
+    state.data.porQue = c.porQue || seed.porQue || [];
+    state.data.donar = c.donar || seed.donar || DEFAULTS.data.donar;
+    state.data.transparencia = c.transparencia || seed.transparencia || [];
+
+    // mejoras (colección; un doc por ítem para no chocar con el límite de tamaño)
+    loadedMejoraIds = new Set();
+    const qs = await fs.getDocs(fs.query(fs.collection(db, "mejoras"), fs.orderBy("orden")));
+    if (!qs.empty) {
+      state.data.mejoras = qs.docs.map((d) => { loadedMejoraIds.add(d.id); return Object.assign({ _id: d.id }, d.data()); });
+    } else {
+      state.data.mejoras = (seed.mejoras || []).map((m) => Object.assign({}, m)); // sin _id -> se crean al guardar
     }
-    state = {
-      data: await tryFetch("data.json", DEFAULTS.data),
-      meta: await tryFetch("meta.json", DEFAULTS.meta)
-    };
-    // asegura estructura mínima
-    state.data.mejoras = state.data.mejoras || [];
-    state.data.transparencia = state.data.transparencia || [];
-    state.data.donar = state.data.donar || DEFAULTS.data.donar;
+  }
+
+  /* ---------- Guardar (Firestore) ---------- */
+  async function saveMeta() {
+    state.meta.actualizado = new Date().toISOString();
+    await fs.setDoc(fs.doc(db, "config", "meta"), {
+      objetivo: num(state.meta.objetivo),
+      recaudado: num(state.meta.recaudado),
+      donantes: num(state.meta.donantes),
+      actualizado: state.meta.actualizado
+    });
+  }
+  async function saveContenido() {
+    await fs.setDoc(fs.doc(db, "config", "contenido"), {
+      club: state.data.club,
+      hero: state.data.hero,
+      porQue: state.data.porQue,
+      donar: state.data.donar,
+      transparencia: state.data.transparencia
+    });
+  }
+  async function saveMejoras() {
+    const items = state.data.mejoras;
+    const keep = new Set();
+    for (let i = 0; i < items.length; i++) {
+      const m = items[i];
+      const payload = {
+        orden: i, icono: m.icono || "", foto: m.foto || "", titulo: m.titulo || "",
+        mejora: m.mejora || "", costo: num(m.costo), recurrente: !!m.recurrente, periodo: m.periodo || "mes"
+      };
+      if (m._id) { await fs.setDoc(fs.doc(db, "mejoras", m._id), payload); keep.add(m._id); }
+      else { const ref = await fs.addDoc(fs.collection(db, "mejoras"), payload); m._id = ref.id; keep.add(ref.id); }
+    }
+    for (const id of loadedMejoraIds) { if (!keep.has(id)) await fs.deleteDoc(fs.doc(db, "mejoras", id)); }
+    loadedMejoraIds = keep;
+  }
+
+  async function guardarTodo() {
+    const btn = $("#dl-data");
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = "Guardando…";
+    try {
+      await saveMeta();
+      await saveContenido();
+      await saveMejoras();
+      markClean();
+      toast("Guardado ✓ Ya se ve en la web");
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo guardar: " + (e && e.message ? e.message : e) + "\n\nRevisá tu conexión y que las reglas de Firestore estén cargadas.");
+    } finally { btn.disabled = false; btn.textContent = prev; }
+  }
+  async function guardarSoloMeta() {
+    const btn = $("#dl-meta");
+    btn.disabled = true; const prev = btn.textContent; btn.textContent = "Guardando…";
+    try { await saveMeta(); markClean(); toast("Meta actualizada ✓ En vivo"); }
+    catch (e) { alert("No se pudo guardar la meta: " + (e && e.message ? e.message : e)); }
+    finally { btn.disabled = false; btn.textContent = prev; }
   }
 
   /* ---------- Rellenar formularios ---------- */
@@ -173,11 +189,8 @@
 
   /* ---------- Ítems ---------- */
   function renderItems() {
-    const cont = $("#items");
-    cont.innerHTML = state.data.mejoras.map((m, i) => {
-      const thumb = m.foto
-        ? `<img src="${attr(m.foto)}" alt="" />`
-        : `<span>${attr(m.icono || "🏉")}</span>`;
+    $("#items").innerHTML = state.data.mejoras.map((m, i) => {
+      const thumb = m.foto ? `<img src="${attr(m.foto)}" alt="" />` : `<span>${attr(m.icono || "🏉")}</span>`;
       return `
       <div class="item">
         <div class="item__top">
@@ -188,27 +201,16 @@
             <label>Qué mejora / descripción</label>
             <textarea data-i="${i}" data-k="mejora" placeholder="Ej: Imagen nítida de todo el partido.">${attr(m.mejora)}</textarea>
             <div class="row row--3">
-              <div>
-                <label>Costo ($)</label>
-                <input type="number" data-i="${i}" data-k="costo" min="0" step="1000" value="${num(m.costo)}" />
-              </div>
-              <div>
-                <label>Emoji (si no hay foto)</label>
-                <input type="text" data-i="${i}" data-k="icono" value="${attr(m.icono)}" maxlength="4" />
-              </div>
-              <div>
-                <label>Período</label>
-                <input type="text" data-i="${i}" data-k="periodo" value="${attr(m.periodo || "mes")}" placeholder="mes" />
-              </div>
+              <div><label>Costo ($)</label><input type="number" data-i="${i}" data-k="costo" min="0" step="1000" value="${num(m.costo)}" /></div>
+              <div><label>Emoji (si no hay foto)</label><input type="text" data-i="${i}" data-k="icono" value="${attr(m.icono)}" maxlength="4" /></div>
+              <div><label>Período</label><input type="text" data-i="${i}" data-k="periodo" value="${attr(m.periodo || "mes")}" placeholder="mes" /></div>
             </div>
           </div>
         </div>
         <div class="item__actions">
           <label class="chk"><input type="checkbox" data-i="${i}" data-k="recurrente" ${m.recurrente ? "checked" : ""} /> Abono mensual (gasto que se paga todos los meses)</label>
           <span style="flex:1"></span>
-          <label class="btn btn--ghost btn--sm filepick">📷 Foto
-            <input type="file" accept="image/*" data-i="${i}" />
-          </label>
+          <label class="btn btn--ghost btn--sm filepick">📷 Foto<input type="file" accept="image/*" data-i="${i}" /></label>
           ${m.foto ? `<button class="btn btn--ghost btn--sm" data-act="rmfoto" data-i="${i}">Quitar foto</button>` : ""}
           <button class="btn btn--ghost btn--sm" data-act="up" data-i="${i}" title="Subir">▲</button>
           <button class="btn btn--ghost btn--sm" data-act="down" data-i="${i}" title="Bajar">▼</button>
@@ -221,13 +223,12 @@
   function bindItems() {
     const cont = $("#items");
     cont.addEventListener("input", (e) => {
-      const el = e.target;
-      const i = el.getAttribute("data-i"), k = el.getAttribute("data-k");
+      const el = e.target, i = el.getAttribute("data-i"), k = el.getAttribute("data-k");
       if (i == null || k == null) return;
       let v = el.type === "checkbox" ? el.checked : el.value;
       if (k === "costo") v = num(v);
       state.data.mejoras[+i][k] = v;
-      saveDraft();
+      markDirty();
     });
     cont.addEventListener("change", (e) => {
       const el = e.target;
@@ -247,11 +248,11 @@
       else if (act === "up" && i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; }
       else if (act === "down" && i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; }
       else if (act === "rmfoto") { arr[i].foto = ""; }
-      renderItems(); saveDraft();
+      renderItems(); markDirty();
     });
     $("#add-item").addEventListener("click", () => {
       state.data.mejoras.push({ icono: "🏉", foto: "", titulo: "", mejora: "", costo: 0, recurrente: false, periodo: "mes" });
-      renderItems(); saveDraft();
+      renderItems(); markDirty();
       $("#items").lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
@@ -262,16 +263,14 @@
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const maxW = 1000;
-        const scale = Math.min(1, maxW / img.width);
+        const maxW = 1000, scale = Math.min(1, maxW / img.width);
         const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
         canvas.getContext("2d").drawImage(img, 0, 0, w, h);
         try {
           state.data.mejoras[i].foto = canvas.toDataURL("image/jpeg", 0.82);
-          renderItems(); saveDraft();
-          toast("Foto cargada ✓");
+          renderItems(); markDirty(); toast("Foto cargada ✓");
         } catch (e) { toast("No se pudo procesar la foto"); }
       };
       img.onerror = () => toast("Archivo de imagen inválido");
@@ -294,36 +293,31 @@
     cont.addEventListener("input", (e) => {
       const i = e.target.getAttribute("data-i");
       if (i == null) return;
-      state.data.transparencia[+i] = e.target.value;
-      saveDraft();
+      state.data.transparencia[+i] = e.target.value; markDirty();
     });
     cont.addEventListener("click", (e) => {
       const b = e.target.closest("button[data-act=del]");
       if (!b) return;
       state.data.transparencia.splice(+b.getAttribute("data-i"), 1);
-      renderTransp(); saveDraft();
+      renderTransp(); markDirty();
     });
     $("#add-transp").addEventListener("click", () => {
-      state.data.transparencia.push("");
-      renderTransp(); saveDraft();
+      state.data.transparencia.push(""); renderTransp(); markDirty();
     });
   }
 
-  /* ---------- Campos estáticos (meta, donar, textos) ---------- */
+  /* ---------- Campos estáticos ---------- */
   function bindStatic() {
-    const on = (id, fn) => $(id).addEventListener("input", (e) => { fn(e.target); saveDraft(); });
-
+    const on = (id, fn) => $(id).addEventListener("input", (e) => { fn(e.target); markDirty(); });
     on("#m-objetivo", (el) => state.meta.objetivo = num(el.value));
     on("#m-recaudado", (el) => state.meta.recaudado = num(el.value));
     on("#m-donantes", (el) => state.meta.donantes = num(el.value));
-
     on("#mp-activo", (el) => state.data.donar.mercadopago.activo = el.checked);
     on("#mp-url", (el) => state.data.donar.mercadopago.url = el.value);
     on("#tr-activo", (el) => state.data.donar.transferencia.activo = el.checked);
     on("#tr-alias", (el) => state.data.donar.transferencia.alias = el.value);
     on("#tr-cbu", (el) => state.data.donar.transferencia.cbu = el.value);
     on("#tr-titular", (el) => state.data.donar.transferencia.titular = el.value);
-
     on("#h-titulo", (el) => state.data.hero.titulo = el.value);
     on("#h-bajada", (el) => state.data.hero.bajada = el.value);
     on("#h-eyebrow", (el) => state.data.hero.eyebrow = el.value);
@@ -332,129 +326,88 @@
     on("#c-yt", (el) => state.data.club.canalYoutube = el.value);
   }
 
-  /* ---------- Exportar ---------- */
-  function download(filename, text) {
-    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  function bindButtons() {
+    $("#dl-data").addEventListener("click", guardarTodo);
+    $("#dl-meta").addEventListener("click", guardarSoloMeta);
+    $("#copy-data") && $("#copy-data").remove();
+    $("#copy-meta") && $("#copy-meta").remove();
+    $("#reset") && $("#reset").addEventListener("click", () => {
+      if (confirm("Descartar los cambios sin guardar y recargar desde el servidor?")) location.reload();
+    });
+    $("#btn-logout").addEventListener("click", async () => {
+      if (dirty && !confirm("Tenés cambios sin guardar. ¿Cerrar sesión igual?")) return;
+      try { await authMod.signOut(auth); } catch (e) {}
+    });
+    $("#btn-pass").addEventListener("click", cambiarPassword);
+    window.addEventListener("beforeunload", (e) => {
+      if (dirty) { e.preventDefault(); e.returnValue = ""; }
+    });
   }
-  async function copy(text) {
+
+  async function cambiarPassword() {
+    if (!auth || !auth.currentUser) return;
+    const nueva = prompt("Nueva contraseña (mínimo 6 caracteres):");
+    if (nueva == null) return;
+    if (nueva.length < 6) { alert("Mínimo 6 caracteres."); return; }
+    if (prompt("Repetí la nueva contraseña:") !== nueva) { alert("No coinciden."); return; }
     try {
-      if (navigator.clipboard) await navigator.clipboard.writeText(text);
-      else throw 0;
-      toast("Copiado al portapapeles ✓");
+      await authMod.updatePassword(auth.currentUser, nueva);
+      toast("Contraseña cambiada ✓");
     } catch (e) {
-      const ta = document.createElement("textarea");
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); toast("Copiado ✓"); } catch (e2) { toast("No se pudo copiar"); }
-      ta.remove();
+      alert("No se pudo cambiar: " + (e && e.message ? e.message : e) + "\n\n(Puede que tengas que cerrar sesión y volver a entrar antes de cambiarla.)");
     }
   }
-  function metaJSON() {
-    // fecha/hora actual (sirve para el "actualizado hace X")
-    state.meta.actualizado = new Date().toISOString();
-    return JSON.stringify({
-      objetivo: num(state.meta.objetivo),
-      recaudado: num(state.meta.recaudado),
-      donantes: num(state.meta.donantes),
-      actualizado: state.meta.actualizado
-    }, null, 2) + "\n";
-  }
-  function dataJSON() {
-    return JSON.stringify(state.data, null, 2) + "\n";
-  }
 
-  function bindExport() {
-    $("#dl-meta").addEventListener("click", () => { download("meta.json", metaJSON()); saveDraft(); toast("meta.json descargado ⬇️"); });
-    $("#copy-meta").addEventListener("click", () => copy(metaJSON()));
-    $("#dl-data").addEventListener("click", () => { download("data.json", dataJSON()); toast("data.json descargado ⬇️"); });
-    $("#copy-data").addEventListener("click", () => copy(dataJSON()));
-    $("#reset").addEventListener("click", () => {
-      if (confirm("Esto borra el borrador guardado en este navegador y vuelve a los datos publicados. ¿Seguir?")) {
-        localStorage.removeItem(DRAFT_KEY);
-        location.reload();
-      }
-    });
-  }
-
-  /* ---------- Contraseña / candado ---------- */
-  let currentHash = DEFAULT_HASH;
-  let appReady = false;
-
-  async function loadAuthHash() {
-    try {
-      const r = await fetch(AUTH_SOURCE + "?t=" + Date.now(), { cache: "no-store" });
-      if (r.ok) {
-        const j = await r.json();
-        if (j && j.hash) currentHash = String(j.hash).toLowerCase();
-      }
-    } catch (e) { /* usa DEFAULT_HASH */ }
-  }
-
-  async function initApp() {
-    if (appReady) return;
-    appReady = true;
-    await load();
-    fillForm();
-    bindStatic();
-    bindItems();
-    bindTransp();
-    bindExport();
-  }
-
-  function unlock() {
-    document.body.classList.remove("locked");
-    initApp();
-  }
-
-  function setupGate() {
-    // ¿Ya se validó en esta pestaña?
-    if (sessionStorage.getItem(SESSION_KEY) === currentHash) {
-      unlock();
-      return;
-    }
-    const form = $("#gate-form");
-    form.addEventListener("submit", (e) => {
+  /* ---------- Login ---------- */
+  function bindLogin() {
+    $("#gate-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const val = $("#gate-pass").value || "";
-      if (hashPassword(val) === currentHash) {
-        try { sessionStorage.setItem(SESSION_KEY, currentHash); } catch (e2) {}
-        $("#gate-err").textContent = "";
-        unlock();
-      } else {
-        $("#gate-err").textContent = "Contraseña incorrecta.";
-        $("#gate-pass").select();
-      }
+      const email = ($("#gate-email").value || "").trim();
+      const pass = $("#gate-pass").value || "";
+      $("#gate-err").textContent = "";
+      const btn = $("#gate-form button[type=submit]");
+      btn.disabled = true; const prev = btn.textContent; btn.textContent = "Entrando…";
+      try {
+        await authMod.signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged se encarga de abrir
+      } catch (err) {
+        const code = err && err.code ? err.code : "";
+        let msg = "No se pudo entrar. Revisá el email y la contraseña.";
+        if (code.indexOf("too-many-requests") >= 0) msg = "Demasiados intentos. Esperá un momento y probá de nuevo.";
+        if (code.indexOf("network") >= 0) msg = "Sin conexión. Revisá tu internet.";
+        $("#gate-err").textContent = msg;
+      } finally { btn.disabled = false; btn.textContent = prev; }
     });
   }
 
-  // Cambiar contraseña: genera el nuevo auth.json para subir al repo
-  function bindChangePassword() {
-    $("#btn-pass").addEventListener("click", () => {
-      const nueva = prompt("Escribí la nueva contraseña para el panel:");
-      if (nueva == null) return;
-      if (nueva.length < 6) { alert("Poné una contraseña de al menos 6 caracteres."); return; }
-      const nueva2 = prompt("Repetí la nueva contraseña:");
-      if (nueva2 == null) return;
-      if (nueva !== nueva2) { alert("No coinciden. Probá de nuevo."); return; }
-      const hash = hashPassword(nueva);
-      const json = JSON.stringify({ hash: hash }, null, 2) + "\n";
-      download("auth.json", json);
-      // Actualiza la sesión actual para no quedar afuera
-      currentHash = hash;
-      try { sessionStorage.setItem(SESSION_KEY, hash); } catch (e) {}
-      toast("Descargué auth.json ⬇️");
-      alert("Listo. Descargué el archivo 'auth.json' con la nueva contraseña.\n\nSubilo al repositorio (reemplazando el que está) o pasámelo, y desde ese momento la nueva contraseña queda activa para todos.");
-    });
+  async function afterLogin(user) {
+    $("#who").textContent = user.email || "";
+    try {
+      await loadData();
+      fillForm();
+      markClean();
+      document.body.classList.remove("locked");
+    } catch (e) {
+      console.error(e);
+      alert("Entraste, pero no se pudieron leer los datos: " + (e && e.message ? e.message : e) +
+        "\n\nRevisá que hayas creado la base de datos Firestore y cargado las reglas.");
+    }
   }
 
   /* ---------- Init ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
-    await loadAuthHash();
-    setupGate();
-    bindChangePassword();
+    bindStatic(); bindItems(); bindTransp(); bindButtons();
+    try {
+      const fb = await withTimeout(window.fbLoad(true), 12000, "No se pudo conectar con Firebase");
+      db = fb.db; fs = fb.fs; auth = fb.auth; authMod = fb.authMod;
+      bindLogin();
+      authMod.onAuthStateChanged(auth, (user) => {
+        if (user) afterLogin(user);
+        else { document.body.classList.add("locked"); $("#gate-pass").value = ""; }
+      });
+    } catch (e) {
+      console.error(e);
+      $("#gate-err").textContent = "No se pudo conectar con el servidor. Revisá tu internet y recargá.";
+    }
   });
 })();

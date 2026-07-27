@@ -1,16 +1,10 @@
 /* =====================================================================
-   app.js — Arma la página desde data.json y actualiza la meta en vivo
-   leyendo meta.json. No hace falta editar este archivo para cambiar el
-   contenido: usá el panel de carga (admin.html) o editá los .json.
+   app.js — Web pública. Lee el contenido y la meta desde Firebase
+   (Firestore) EN VIVO. Si Firebase no está disponible, usa los
+   archivos JSON como respaldo, así la web nunca queda vacía.
    ===================================================================== */
 (function () {
   "use strict";
-
-  const CONFIG = {
-    dataSource: "data.json", // contenido (mejoras, textos, donación)
-    metaSource: "meta.json", // meta en vivo (recaudado, donantes, objetivo)
-    pollSeconds: 20          // cada cuánto se recarga la meta
-  };
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) =>
@@ -32,36 +26,59 @@
     return `hace ${dias} día${dias > 1 ? "s" : ""}`;
   }
 
-  /* ---------- Contenido (desde data.json) ---------- */
-  function renderStatic(D) {
-    // Hero
-    $("#hero-eyebrow").textContent = D.hero.eyebrow || "";
-    $("#hero-title").textContent = D.hero.titulo || "";
-    $("#hero-lead").textContent = D.hero.bajada || "";
+  async function getJSON(url) {
+    const r = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+  let _json = null;
+  async function jsonData() {
+    if (!_json) { try { _json = await getJSON("data.json"); } catch (e) { _json = {}; } }
+    return _json;
+  }
 
-    // Por qué
+  /* ---------- Render: contenido ---------- */
+  function renderContenido(D) {
+    D = D || {};
+    const hero = D.hero || {}, club = D.club || {};
+    $("#hero-eyebrow").textContent = hero.eyebrow || "";
+    $("#hero-title").textContent = hero.titulo || "";
+    $("#hero-lead").textContent = hero.bajada || "";
+
     $("#porque-grid").innerHTML = (D.porQue || [])
-      .map(
-        (p) => `
+      .map((p) => `
         <article class="pq">
           <div class="pq__icon">${esc(p.icono)}</div>
           <h3>${esc(p.titulo)}</h3>
           <p>${esc(p.texto)}</p>
-        </article>`
-      )
-      .join("");
+        </article>`).join("");
 
-    // Mejoras / ítems
-    $("#mejoras-grid").innerHTML = (D.mejoras || [])
-      .map((m) => {
-        const media = m.foto
-          ? `<div class="card__media"><img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" /></div>`
-          : `<div class="card__media card__media--empty"><span>${esc(m.icono || "🏉")}</span></div>`;
-        const badge = m.recurrente ? `<span class="card__tag">Mensual</span>` : "";
-        const costo = m.recurrente
-          ? `<div class="card__cost"><small>Abono ${esc(m.periodo || "mes")}</small>${pesos(m.costo)} <span class="per">/ ${esc(m.periodo || "mes")}</span></div>`
-          : `<div class="card__cost"><small>Costo estimado</small>${pesos(m.costo)}</div>`;
-        return `
+    renderDonar(D.donar || {});
+
+    $("#transparencia-list").innerHTML = (D.transparencia || [])
+      .map((t) => `<li>${esc(t)}</li>`).join("");
+
+    $("#footer-club").textContent = club.nombre || "";
+    $("#footer-club-long").textContent = club.nombreLargo || "";
+    const soc = [];
+    if (club.instagram) soc.push(`<a href="${esc(club.instagram)}" target="_blank" rel="noopener">📷 Instagram</a>`);
+    if (club.facebook) soc.push(`<a href="${esc(club.facebook)}" target="_blank" rel="noopener">👍 Facebook</a>`);
+    if (club.canalYoutube) soc.push(`<a href="${esc(club.canalYoutube)}" target="_blank" rel="noopener">▶️ Ver el streaming</a>`);
+    $("#footer-social").innerHTML = soc.join("");
+  }
+
+  /* ---------- Render: mejoras ---------- */
+  function renderMejoras(items) {
+    items = items || [];
+    $("#mejoras-grid").innerHTML = items.map((m) => {
+      const media = m.foto
+        ? `<div class="card__media"><img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" /></div>`
+        : `<div class="card__media card__media--empty"><span>${esc(m.icono || "🏉")}</span></div>`;
+      const badge = m.recurrente ? `<span class="card__tag">Mensual</span>` : "";
+      const costo = m.recurrente
+        ? `<div class="card__cost"><small>Abono ${esc(m.periodo || "mes")}</small>${pesos(m.costo)} <span class="per">/ ${esc(m.periodo || "mes")}</span></div>`
+        : `<div class="card__cost"><small>Costo estimado</small>${pesos(m.costo)}</div>`;
+      return `
         <article class="card">
           ${media}
           <div class="card__body">
@@ -70,35 +87,15 @@
             ${costo}
           </div>
         </article>`;
-      })
-      .join("");
+    }).join("");
 
-    // Totales: por única vez + mensual
-    const items = D.mejoras || [];
     const unaVez = items.filter((m) => !m.recurrente).reduce((a, m) => a + (Number(m.costo) || 0), 0);
     const mensual = items.filter((m) => m.recurrente).reduce((a, m) => a + (Number(m.costo) || 0), 0);
-    let totalHTML = `<div class="mejoras__total-row"><span>Equipamiento (por única vez)</span><b>${pesos(unaVez)}</b></div>`;
+    let html = `<div class="mejoras__total-row"><span>Equipamiento (por única vez)</span><b>${pesos(unaVez)}</b></div>`;
     if (mensual > 0) {
-      totalHTML += `<div class="mejoras__total-row mejoras__total-row--sub"><span>Gastos mensuales</span><b>${pesos(mensual)} <em>/ mes</em></b></div>`;
+      html += `<div class="mejoras__total-row mejoras__total-row--sub"><span>Gastos mensuales</span><b>${pesos(mensual)} <em>/ mes</em></b></div>`;
     }
-    $("#mejoras-total").innerHTML = totalHTML;
-
-    // Cómo donar
-    renderDonar(D.donar || {});
-
-    // Transparencia
-    $("#transparencia-list").innerHTML = (D.transparencia || [])
-      .map((t) => `<li>${esc(t)}</li>`)
-      .join("");
-
-    // Footer
-    $("#footer-club").textContent = D.club.nombre || "";
-    $("#footer-club-long").textContent = D.club.nombreLargo || "";
-    const soc = [];
-    if (D.club.instagram) soc.push(`<a href="${esc(D.club.instagram)}" target="_blank" rel="noopener">📷 Instagram</a>`);
-    if (D.club.facebook) soc.push(`<a href="${esc(D.club.facebook)}" target="_blank" rel="noopener">👍 Facebook</a>`);
-    if (D.club.canalYoutube) soc.push(`<a href="${esc(D.club.canalYoutube)}" target="_blank" rel="noopener">▶️ Ver el streaming</a>`);
-    $("#footer-social").innerHTML = soc.join("");
+    $("#mejoras-total").innerHTML = html;
   }
 
   function renderDonar(d) {
@@ -121,24 +118,17 @@
           <h3>${esc(tr.titulo)}</h3>
           <p>${esc(tr.descripcion)}</p>
           <div class="field">
-            <div>
-              <div class="field__label">Alias</div>
-              <div class="field__value">${esc(tr.alias)}</div>
-            </div>
+            <div><div class="field__label">Alias</div><div class="field__value">${esc(tr.alias)}</div></div>
             <button class="copy" data-copy="${esc(tr.alias)}">Copiar</button>
           </div>
           <div class="field">
-            <div>
-              <div class="field__label">CBU / CVU</div>
-              <div class="field__value">${esc(tr.cbu)}</div>
-            </div>
+            <div><div class="field__label">CBU / CVU</div><div class="field__value">${esc(tr.cbu)}</div></div>
             <button class="copy" data-copy="${esc(tr.cbu)}">Copiar</button>
           </div>
           <p class="dcard__titular">Titular: ${esc(tr.titular)}</p>
         </article>`);
     }
     $("#donar-grid").innerHTML = cards.join("");
-
     document.querySelectorAll(".copy").forEach((btn) => {
       btn.addEventListener("click", () => copiar(btn.getAttribute("data-copy"), btn));
     });
@@ -153,9 +143,7 @@
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
-    } else {
-      fallbackCopy(txt, done);
-    }
+    } else { fallbackCopy(txt, done); }
   }
   function fallbackCopy(txt, done) {
     const ta = document.createElement("textarea");
@@ -164,18 +152,17 @@
     try { document.execCommand("copy"); done(); } catch (e) {}
     document.body.removeChild(ta);
   }
-
   let toastTimer;
   function toast(msg) {
     const el = $("#toast");
-    el.textContent = msg;
-    el.classList.add("show");
+    el.textContent = msg; el.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove("show"), 2000);
   }
 
-  /* ---------- META EN VIVO ---------- */
+  /* ---------- Meta ---------- */
   function pintarMeta(meta) {
+    meta = meta || {};
     const objetivo = Number(meta.objetivo) || 0;
     const recaudado = Number(meta.recaudado) || 0;
     const donantes = Number(meta.donantes) || 0;
@@ -195,31 +182,33 @@
     });
   }
 
-  async function cargarJSON(url) {
-    const res = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
+  /* ---------- Respaldo por JSON ---------- */
+  async function fallbackTodo() {
+    const d = await jsonData();
+    renderContenido(d);
+    renderMejoras(d.mejoras || []);
+    try { pintarMeta(await getJSON("meta.json")); } catch (e) {}
   }
 
-  async function cargarMeta() {
-    try {
-      pintarMeta(await cargarJSON(CONFIG.metaSource));
-    } catch (e) {
-      $("#meta-updated").textContent = "No se pudo leer la meta";
-    }
-  }
-
-  /* ---------- Init ---------- */
+  /* ---------- Init ----------
+     1) Pinta al instante desde los JSON (respaldo): la web nunca queda en blanco.
+     2) Intenta conectar a Firebase para datos EN VIVO; si llega, reemplaza. */
   document.addEventListener("DOMContentLoaded", async () => {
-    try {
-      renderStatic(await cargarJSON(CONFIG.dataSource));
-    } catch (e) {
-      console.error("No se pudo cargar data.json:", e);
-      const grid = $("#mejoras-grid");
-      if (grid) grid.innerHTML = "<p style='text-align:center;color:#c00'>No se pudo cargar el contenido. Si estás abriendo el archivo directamente, usá un servidor (ver README).</p>";
-    }
-    cargarMeta();
-    const seg = Math.max(5, Number(CONFIG.pollSeconds) || 20);
-    setInterval(cargarMeta, seg * 1000);
+    await fallbackTodo();
+    conectarEnVivo();
   });
+
+  async function conectarEnVivo() {
+    try {
+      const { db, fs } = await window.fbLoad(false);
+      fs.onSnapshot(fs.doc(db, "config", "meta"),
+        (snap) => { if (snap.exists()) pintarMeta(snap.data()); }, () => {});
+      fs.onSnapshot(fs.doc(db, "config", "contenido"),
+        (snap) => { if (snap.exists()) renderContenido(snap.data()); }, () => {});
+      fs.onSnapshot(fs.query(fs.collection(db, "mejoras"), fs.orderBy("orden")),
+        (qs) => { if (!qs.empty) renderMejoras(qs.docs.map((d) => d.data())); }, () => {});
+    } catch (e) {
+      console.warn("Firebase no disponible; queda el respaldo por JSON.", e);
+    }
+  }
 })();

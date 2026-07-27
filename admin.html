@@ -105,8 +105,9 @@
     <form class="gate__box" id="gate-form">
       <img src="assets/escudo.png" alt="Escudo CEC Liceo Militar" />
       <h1>Panel de carga</h1>
-      <p>Ingresá la contraseña para editar el sitio.</p>
-      <input type="password" id="gate-pass" placeholder="Contraseña" autocomplete="current-password" autofocus />
+      <p>Ingresá con tu email y contraseña para editar el sitio.</p>
+      <input type="email" id="gate-email" placeholder="Email" autocomplete="username" autofocus />
+      <input type="password" id="gate-pass" placeholder="Contraseña" autocomplete="current-password" />
       <button type="submit" class="btn btn--gold btn--block">Entrar</button>
       <div class="gate__err" id="gate-err"></div>
     </form>
@@ -116,22 +117,19 @@
     <div class="top__in">
       <img src="assets/escudo.png" alt="Escudo" />
       <b>Panel de carga</b>
-      <button type="button" id="btn-pass" class="btn btn--ghost btn--sm" style="margin-left:auto;color:#fff;border-color:rgba(255,255,255,.3)">🔑 Contraseña</button>
-      <a class="view" href="index.html" target="_blank" rel="noopener" style="margin-left:.6rem">Ver la web ↗</a>
+      <span id="who" style="margin-left:auto;color:#cdd6e6;font-size:.82rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <button type="button" id="btn-pass" class="btn btn--ghost btn--sm" style="color:#fff;border-color:rgba(255,255,255,.3)">🔑 Contraseña</button>
+      <button type="button" id="btn-logout" class="btn btn--ghost btn--sm" style="color:#fff;border-color:rgba(255,255,255,.3)">Salir</button>
+      <a class="view" href="index.html" target="_blank" rel="noopener" style="margin-left:.4rem">Ver la web ↗</a>
     </div>
   </header>
 
   <main>
     <div class="intro">
-      <b>¿Cómo funciona?</b> Editá acá lo que quieras (la meta, los ítems, las fotos, cómo donar) y después
-      <b>descargá los archivos</b> con los botones de abajo. Las fotos quedan guardadas dentro del archivo, no
-      hace falta subirlas por separado.
-      <ol>
-        <li>Cambiá lo que necesites en esta página.</li>
-        <li>Tocá <b>“Descargar meta.json”</b> y/o <b>“Descargar data.json”</b>.</li>
-        <li>Reemplazá esos archivos en el repositorio (GitHub) o pasámelos y los subo yo.</li>
-      </ol>
-      <p class="muted" style="margin-top:.5rem">Tus cambios se guardan como borrador en este navegador por si cerrás sin querer.</p>
+      <b>¿Cómo funciona?</b> Editá lo que quieras (la meta, los ítems, las fotos, cómo donar) y tocá
+      <b>“Guardar”</b>. Los cambios se guardan solos en la nube y <b>se ven en la web al instante</b> —
+      no hace falta bajar ni subir nada.
+      <p class="muted" style="margin-top:.5rem">La meta cambia en vivo para todos los que estén mirando la página.</p>
     </div>
 
     <!-- META -->
@@ -154,8 +152,7 @@
       </div>
       <div class="metaprev" id="metaprev"></div>
       <div class="item__actions" style="margin-top:1rem">
-        <button class="btn btn--gold" id="dl-meta">⬇️ Descargar meta.json</button>
-        <button class="btn btn--ghost" id="copy-meta">Copiar meta.json</button>
+        <button class="btn btn--gold" id="dl-meta">💾 Guardar meta</button>
       </div>
     </section>
 
@@ -211,20 +208,20 @@
 
     <p class="muted" style="text-align:center">
       ¿Se te complicó algo? <a href="index.html">Volver a la web</a> ·
-      <button class="btn btn--ghost btn--sm" id="reset">Descartar borrador y recargar</button>
+      <button class="btn btn--ghost btn--sm" id="reset">Descartar cambios y recargar</button>
     </p>
   </main>
 
   <div class="exportbar">
     <div class="exportbar__in">
-      <span class="grow">Al terminar, descargá el contenido y subilo al repo. <span class="pill" id="draft-status">Borrador guardado</span></span>
-      <button class="btn btn--gold" id="dl-data">⬇️ Descargar data.json</button>
-      <button class="btn btn--ghost" id="copy-data">Copiar data.json</button>
+      <span class="grow">Los cambios se guardan directo y se ven en la web al instante. <span class="pill" id="draft-status">Todo guardado ✓</span></span>
+      <button class="btn btn--gold" id="dl-data">💾 Guardar todo</button>
     </div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="firebase-shared.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>
