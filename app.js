@@ -111,11 +111,11 @@
       const prioMark = prio > 0 ? `<span class="card__prio" title="Prioridad">${prio}</span>` : "";
       const urg = m.urgencia === "urgente"
         ? `<span class="card__tag card__tag--urg">Urgente</span>`
-        : (m.urgencia === "menos" ? `<span class="card__tag card__tag--low">Menos urgente</span>` : "");
+        : (m.urgencia === "menos" ? `<span class="card__tag card__tag--pronto">Necesita cambio</span>` : "");
       const media = m.foto
         ? `<div class="card__media">${prioMark}<img src="${esc(m.foto)}" alt="${esc(m.titulo)}" loading="lazy" />${doneMark}</div>`
         : `<div class="card__media card__media--empty">${prioMark}<span>${esc(m.icono || "🏉")}</span>${doneMark}</div>`;
-      const badges = urg + (m.recurrente ? `<span class="card__tag">Mensual</span>` : "") + (done ? `<span class="card__tag card__tag--ok">Conseguido</span>` : "");
+      const badges = urg + (m.recurrente ? `<span class="card__tag card__tag--mensual">Mensual</span>` : "") + (done ? `<span class="card__tag card__tag--ok">Conseguido</span>` : "");
       const cur = m.moneda === "USD" ? "USD" : "ARS";
       const other = cur === "USD" ? "ARS" : "USD";
       const nativo = fmt(m.costo, cur);

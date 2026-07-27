@@ -228,7 +228,8 @@ a { color: inherit; text-decoration: none; }
 }
 .card__tag--ok { background: var(--ok); color: #fff; }
 .card__tag--urg { background: #e02424; color: #fff; }
-.card__tag--low { background: #e6e9ef; color: var(--muted); }
+.card__tag--pronto { background: #ea580c; color: #fff; }
+.card__tag--mensual { background: var(--blue); color: #fff; }
 .card__done { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 1.1rem; box-shadow: var(--shadow); }
 .card__prio { position: absolute; top: 8px; left: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; font-size: 1rem; box-shadow: var(--shadow); z-index: 1; }
 .card--done { border-color: rgba(22,163,74,.45); }

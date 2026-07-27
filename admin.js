@@ -328,7 +328,7 @@
                 <select data-i="${i}" data-k="urgencia">
                   <option value="normal"${(m.urgencia === "urgente" || m.urgencia === "menos") ? "" : " selected"}>Normal</option>
                   <option value="urgente"${m.urgencia === "urgente" ? " selected" : ""}>🔴 Urgente</option>
-                  <option value="menos"${m.urgencia === "menos" ? " selected" : ""}>Menos urgente</option>
+                  <option value="menos"${m.urgencia === "menos" ? " selected" : ""}>🟠 Necesita cambio (pronto)</option>
                 </select>
               </div>
               <div><label>N° de prioridad (0 = sin número)</label><input type="number" data-i="${i}" data-k="prioridad" min="0" step="1" value="${Number(m.prioridad) || 0}" /></div>
