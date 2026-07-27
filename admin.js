@@ -372,9 +372,11 @@
         // onAuthStateChanged se encarga de abrir
       } catch (err) {
         const code = err && err.code ? err.code : "";
-        let msg = "No se pudo entrar. Revisá el email y la contraseña.";
-        if (code.indexOf("too-many-requests") >= 0) msg = "Demasiados intentos. Esperá un momento y probá de nuevo.";
-        if (code.indexOf("network") >= 0) msg = "Sin conexión. Revisá tu internet.";
+        let msg = "Email o contraseña incorrectos. Fijate que el usuario exista en Firebase → Authentication → Users y que uses ESA contraseña (no la vieja).";
+        if (code.indexOf("operation-not-allowed") >= 0) msg = "Falta habilitar Email/Password en Firebase → Authentication → Sign-in method.";
+        else if (code.indexOf("invalid-email") >= 0) msg = "El email no tiene un formato válido.";
+        else if (code.indexOf("too-many-requests") >= 0) msg = "Demasiados intentos. Esperá unos minutos y probá de nuevo.";
+        else if (code.indexOf("network") >= 0) msg = "Sin conexión. Revisá tu internet.";
         $("#gate-err").textContent = msg;
       } finally { btn.disabled = false; btn.textContent = prev; }
     });
