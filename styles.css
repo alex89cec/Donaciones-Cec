@@ -307,6 +307,34 @@ a { color: inherit; text-decoration: none; }
 .donor__amount--navy { color: var(--navy); }
 .donor__msg { color: var(--muted); font-size: .92rem; margin-top: .35rem; font-style: italic; }
 
+/* Un solo método de donación -> centrado */
+#donar-grid.donar-grid--one { grid-template-columns: minmax(0, 460px); justify-content: center; }
+
+/* Carrusel de saludos */
+.carousel { position: relative; max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: .6rem; }
+.carousel__viewport { flex: 1; overflow: hidden; }
+.carousel__track { display: flex; transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+.cslide { flex: 0 0 100%; box-sizing: border-box; padding: 0 .4rem; display: flex; }
+.cslide__card {
+  flex: 1; background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--gold);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.8rem 2rem;
+  display: flex; flex-direction: column; justify-content: center; text-align: center; min-height: 150px;
+}
+.cslide__msg { font-size: 1.25rem; color: var(--ink); font-style: italic; line-height: 1.5; }
+.cslide__msg--soft { color: var(--muted); }
+.cslide__name { margin-top: 1rem; font-family: var(--font-head); font-weight: 600; color: var(--navy); font-size: 1.15rem; }
+.cslide__amount { color: var(--gold); font-family: var(--font-head); font-weight: 700; font-size: 1.2rem; margin-top: .2rem; }
+.carousel__nav {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: none;
+  background: var(--navy); color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer;
+  box-shadow: var(--shadow); transition: background .15s, transform .1s;
+}
+.carousel__nav:hover { background: var(--blue); transform: translateY(-1px); }
+.carousel__dots { display: flex; gap: .5rem; justify-content: center; margin-top: 1.1rem; }
+.cdot { width: 10px; height: 10px; border-radius: 50%; border: none; background: var(--line); cursor: pointer; padding: 0; transition: background .15s, transform .15s; }
+.cdot.is-active { background: var(--gold); transform: scale(1.3); }
+@media (max-width: 560px) { .carousel__nav { width: 36px; height: 36px; font-size: 1.3rem; } .cslide__card { padding: 1.4rem 1.2rem; } .cslide__msg { font-size: 1.1rem; } }
+
 /* Transparencia */
 .transparencia { list-style: none; display: grid; gap: .8rem; }
 .transparencia li {

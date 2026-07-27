@@ -53,6 +53,7 @@
     setTxt("donar-title", T.donarTitulo); setTxt("donar-sub", T.donarSub);
     setTxt("saludo-title", T.saludoTitulo); setTxt("saludo-text", T.saludoTexto);
     setTxt("muro-title", T.muroTitulo); setTxt("muro-sub", T.muroSub);
+    setTxt("saludos-title", T.saludosTitulo);
     setTxt("transparencia-title", T.transparenciaTitulo);
     setTxt("footer-note", T.footerNota);
 
@@ -139,7 +140,10 @@
           <p class="dcard__titular">Titular: ${esc(tr.titular)}</p>
         </article>`);
     }
-    $("#donar-grid").innerHTML = cards.join("");
+    const grid = $("#donar-grid");
+    grid.classList.toggle("grid--2", cards.length !== 1);
+    grid.classList.toggle("donar-grid--one", cards.length === 1);
+    grid.innerHTML = cards.join("");
     document.querySelectorAll(".copy").forEach((btn) => {
       btn.addEventListener("click", () => copiar(btn.getAttribute("data-copy"), btn));
     });
@@ -231,6 +235,55 @@
     }).join("");
   }
 
+  /* ---------- Carrusel de saludos ---------- */
+  let carItems = [], carIdx = 0, carTimer = null;
+  function renderCarousel(arr) {
+    const sec = $("#saludos");
+    if (!sec) return;
+    if (!arr.length) { sec.hidden = true; if (carTimer) { clearInterval(carTimer); carTimer = null; } return; }
+    sec.hidden = false;
+    carItems = arr.slice(0, 12);
+    if (carIdx >= carItems.length) carIdx = 0;
+    $("#saludos-track").innerHTML = carItems.map((d) => {
+      const amt = Number(d.monto) > 0 ? `<div class="cslide__amount">${pesos(d.monto)}</div>` : "";
+      const msg = d.mensaje
+        ? `<p class="cslide__msg">“${esc(d.mensaje)}”</p>`
+        : `<p class="cslide__msg cslide__msg--soft">¡Gracias por bancar el streaming! 💛</p>`;
+      return `<div class="cslide"><div class="cslide__card">${msg}<div class="cslide__name">— ${esc(d.nombre)}</div>${amt}</div></div>`;
+    }).join("");
+    $("#saludos-dots").innerHTML = carItems.map((_, i) => `<button class="cdot ${i === carIdx ? "is-active" : ""}" type="button" data-i="${i}" aria-label="Saludo ${i + 1}"></button>`).join("");
+    aplicarSlide();
+    reiniciarAuto();
+  }
+  function aplicarSlide() {
+    const track = $("#saludos-track");
+    if (track) track.style.transform = "translateX(" + (-carIdx * 100) + "%)";
+    document.querySelectorAll("#saludos-dots .cdot").forEach((el, i) => el.classList.toggle("is-active", i === carIdx));
+  }
+  function irSlide(i) {
+    if (!carItems.length) return;
+    carIdx = ((i % carItems.length) + carItems.length) % carItems.length;
+    aplicarSlide();
+  }
+  function reiniciarAuto() {
+    if (carTimer) clearInterval(carTimer);
+    if (carItems.length > 1) carTimer = setInterval(() => irSlide(carIdx + 1), 5000);
+  }
+  function bindCarousel() {
+    const prev = $("#sal-prev"), next = $("#sal-next"), dots = $("#saludos-dots");
+    if (prev) prev.addEventListener("click", () => { irSlide(carIdx - 1); reiniciarAuto(); });
+    if (next) next.addEventListener("click", () => { irSlide(carIdx + 1); reiniciarAuto(); });
+    if (dots) dots.addEventListener("click", (e) => {
+      const b = e.target.closest(".cdot"); if (!b) return;
+      irSlide(+b.getAttribute("data-i")); reiniciarAuto();
+    });
+    const car = document.querySelector(".saludos .carousel");
+    if (car) {
+      car.addEventListener("mouseenter", () => { if (carTimer) { clearInterval(carTimer); carTimer = null; } });
+      car.addEventListener("mouseleave", reiniciarAuto);
+    }
+  }
+
   /* ---------- Firebase (cacheado) ---------- */
   let FB = null;
   async function fb() { if (!FB) FB = await window.fbLoad(false); return FB; }
@@ -270,6 +323,7 @@
      2) Conecta a Firebase para datos EN VIVO; si llega, reemplaza. */
   document.addEventListener("DOMContentLoaded", async () => {
     bindDonForm();
+    bindCarousel();
     await fallbackTodo();
     conectarEnVivo();
   });
@@ -293,6 +347,7 @@
           const nv = arr[0] && (arr[0].confirmadaEn || arr[0].creadoEn);
           lastConf = nv && typeof nv.toDate === "function" ? nv.toDate().toISOString() : lastConf;
           renderMuro(arr);
+          renderCarousel(arr);
           recomputeMeta();
         }, () => {});
     } catch (e) {

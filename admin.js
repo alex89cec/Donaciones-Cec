@@ -185,6 +185,7 @@
     sv("#t-donarTitulo", t.donarTitulo); sv("#t-donarSub", t.donarSub);
     sv("#t-saludoTitulo", t.saludoTitulo); sv("#t-saludoTexto", t.saludoTexto);
     sv("#t-muroTitulo", t.muroTitulo); sv("#t-muroSub", t.muroSub);
+    sv("#t-saludosTitulo", t.saludosTitulo);
     sv("#t-transparenciaTitulo", t.transparenciaTitulo);
     sv("#t-footerNota", t.footerNota);
     // Textos de los métodos de donación
@@ -377,6 +378,7 @@
     tx("#t-donarTitulo", "donarTitulo"); tx("#t-donarSub", "donarSub");
     tx("#t-saludoTitulo", "saludoTitulo"); tx("#t-saludoTexto", "saludoTexto");
     tx("#t-muroTitulo", "muroTitulo"); tx("#t-muroSub", "muroSub");
+    tx("#t-saludosTitulo", "saludosTitulo");
     tx("#t-transparenciaTitulo", "transparenciaTitulo");
     tx("#t-footerNota", "footerNota");
 
