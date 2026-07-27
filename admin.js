@@ -6,6 +6,69 @@
   "use strict";
 
   const DRAFT_KEY = "cec_admin_draft";
+  const AUTH_SOURCE = "auth.json";
+  const SESSION_KEY = "cec_admin_ok";
+  // Hash de respaldo (contraseña por defecto) por si no se puede leer auth.json.
+  const DEFAULT_HASH = "1699edf374ff61c522deba2f1fe61482ab65b8f1047e29b1e92c99f3fe14fbc7";
+
+  /* ---------- SHA-256 (para no guardar la contraseña en texto plano) ---------- */
+  function sha256(ascii) {
+    function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
+    var mathPow = Math.pow, maxWord = mathPow(2, 32), L = "length";
+    var i, j, result = "", words = [];
+    var asciiBitLength = ascii[L] * 8;
+    var hash = sha256.h = sha256.h || [];
+    var k = sha256.k = sha256.k || [];
+    var primeCounter = k[L];
+    var isComposite = {};
+    for (var candidate = 2; primeCounter < 64; candidate++) {
+      if (!isComposite[candidate]) {
+        for (i = 0; i < 313; i += candidate) { isComposite[i] = candidate; }
+        hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+        k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+      }
+    }
+    ascii += "\x80";
+    while (ascii[L] % 64 - 56) ascii += "\x00";
+    for (i = 0; i < ascii[L]; i++) {
+      j = ascii.charCodeAt(i);
+      if (j >> 8) return;
+      words[i >> 2] |= j << ((3 - i) % 4) * 8;
+    }
+    words[words[L]] = ((asciiBitLength / maxWord) | 0);
+    words[words[L]] = (asciiBitLength);
+    for (j = 0; j < words[L];) {
+      var w = words.slice(j, j += 16);
+      var oldHash = hash;
+      hash = hash.slice(0, 8);
+      for (i = 0; i < 64; i++) {
+        var w15 = w[i - 15], w2 = w[i - 2];
+        var a = hash[0], e = hash[4];
+        var temp1 = hash[7]
+          + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+          + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i]
+          + (w[i] = (i < 16) ? w[i] : (
+              w[i - 16]
+              + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+              + w[i - 7]
+              + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+            ) | 0);
+        var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+          + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(temp1 + temp2) | 0].concat(hash);
+        hash[4] = (hash[4] + temp1) | 0;
+      }
+      for (i = 0; i < 8; i++) { hash[i] = (hash[i] + oldHash[i]) | 0; }
+    }
+    for (i = 0; i < 8; i++) {
+      for (j = 3; j + 1; j--) {
+        var b = (hash[i] >> (j * 8)) & 255;
+        result += ((b < 16) ? 0 : "") + b.toString(16);
+      }
+    }
+    return result;
+  }
+  function hashPassword(pw) { return sha256(unescape(encodeURIComponent(String(pw)))); }
 
   // Respaldo por si no se pueden leer los .json (ej: abierto sin servidor)
   const DEFAULTS = {
@@ -317,13 +380,81 @@
     });
   }
 
-  /* ---------- Init ---------- */
-  document.addEventListener("DOMContentLoaded", async () => {
+  /* ---------- Contraseña / candado ---------- */
+  let currentHash = DEFAULT_HASH;
+  let appReady = false;
+
+  async function loadAuthHash() {
+    try {
+      const r = await fetch(AUTH_SOURCE + "?t=" + Date.now(), { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.hash) currentHash = String(j.hash).toLowerCase();
+      }
+    } catch (e) { /* usa DEFAULT_HASH */ }
+  }
+
+  async function initApp() {
+    if (appReady) return;
+    appReady = true;
     await load();
     fillForm();
     bindStatic();
     bindItems();
     bindTransp();
     bindExport();
+  }
+
+  function unlock() {
+    document.body.classList.remove("locked");
+    initApp();
+  }
+
+  function setupGate() {
+    // ¿Ya se validó en esta pestaña?
+    if (sessionStorage.getItem(SESSION_KEY) === currentHash) {
+      unlock();
+      return;
+    }
+    const form = $("#gate-form");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const val = $("#gate-pass").value || "";
+      if (hashPassword(val) === currentHash) {
+        try { sessionStorage.setItem(SESSION_KEY, currentHash); } catch (e2) {}
+        $("#gate-err").textContent = "";
+        unlock();
+      } else {
+        $("#gate-err").textContent = "Contraseña incorrecta.";
+        $("#gate-pass").select();
+      }
+    });
+  }
+
+  // Cambiar contraseña: genera el nuevo auth.json para subir al repo
+  function bindChangePassword() {
+    $("#btn-pass").addEventListener("click", () => {
+      const nueva = prompt("Escribí la nueva contraseña para el panel:");
+      if (nueva == null) return;
+      if (nueva.length < 6) { alert("Poné una contraseña de al menos 6 caracteres."); return; }
+      const nueva2 = prompt("Repetí la nueva contraseña:");
+      if (nueva2 == null) return;
+      if (nueva !== nueva2) { alert("No coinciden. Probá de nuevo."); return; }
+      const hash = hashPassword(nueva);
+      const json = JSON.stringify({ hash: hash }, null, 2) + "\n";
+      download("auth.json", json);
+      // Actualiza la sesión actual para no quedar afuera
+      currentHash = hash;
+      try { sessionStorage.setItem(SESSION_KEY, hash); } catch (e) {}
+      toast("Descargué auth.json ⬇️");
+      alert("Listo. Descargué el archivo 'auth.json' con la nueva contraseña.\n\nSubilo al repositorio (reemplazando el que está) o pasámelo, y desde ese momento la nueva contraseña queda activa para todos.");
+    });
+  }
+
+  /* ---------- Init ---------- */
+  document.addEventListener("DOMContentLoaded", async () => {
+    await loadAuthHash();
+    setupGate();
+    bindChangePassword();
   });
 })();

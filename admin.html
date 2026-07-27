@@ -78,16 +78,43 @@
       color:#fff;padding:.7rem 1.2rem;border-radius:999px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.3);
       opacity:0;pointer-events:none;transition:.25s;z-index:50}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    /* --- Pantalla de contraseña --- */
+    body.locked{overflow:hidden}
+    body.locked main,body.locked .exportbar{display:none}
+    #gate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);
+      display:none;align-items:center;justify-content:center;padding:1.2rem}
+    body.locked #gate{display:flex}
+    .gate__box{background:#fff;border-radius:18px;padding:2rem 1.6rem;max-width:360px;width:100%;text-align:center;
+      box-shadow:0 24px 60px rgba(0,0,0,.35);border-top:5px solid var(--gold)}
+    .gate__box img{width:76px;height:76px;margin:0 auto .8rem}
+    .gate__box h1{font-family:var(--font-head);text-transform:uppercase;color:var(--navy);font-size:1.5rem;letter-spacing:.5px}
+    .gate__box p{color:var(--muted);font-size:.9rem;margin:.3rem 0 1.2rem}
+    .gate__box input{width:100%;text-align:center;font-size:1.1rem;padding:.7rem;border:1px solid var(--line);
+      border-radius:10px;margin-bottom:.8rem}
+    .gate__err{color:var(--danger);font-size:.85rem;font-weight:600;min-height:1.2rem;margin-top:.6rem}
     .metaprev{margin-top:.6rem;font-size:.9rem;color:var(--navy);font-weight:700}
     @media(max-width:640px){.row--2,.row--3{grid-template-columns:1fr}.item__top{flex-direction:column}.thumb{width:100%;flex-basis:auto;height:120px}}
   </style>
 </head>
-<body>
+<body class="locked">
+  <!-- Pantalla de contraseña -->
+  <div id="gate">
+    <form class="gate__box" id="gate-form">
+      <img src="assets/escudo.png" alt="Escudo CEC Liceo Militar" />
+      <h1>Panel de carga</h1>
+      <p>Ingresá la contraseña para editar el sitio.</p>
+      <input type="password" id="gate-pass" placeholder="Contraseña" autocomplete="current-password" autofocus />
+      <button type="submit" class="btn btn--gold btn--block">Entrar</button>
+      <div class="gate__err" id="gate-err"></div>
+    </form>
+  </div>
+
   <header class="top">
     <div class="top__in">
       <img src="assets/escudo.png" alt="Escudo" />
       <b>Panel de carga</b>
-      <a class="view" href="index.html" target="_blank" rel="noopener">Ver la web ↗</a>
+      <button type="button" id="btn-pass" class="btn btn--ghost btn--sm" style="margin-left:auto;color:#fff;border-color:rgba(255,255,255,.3)">🔑 Contraseña</button>
+      <a class="view" href="index.html" target="_blank" rel="noopener" style="margin-left:.6rem">Ver la web ↗</a>
     </div>
   </header>
 

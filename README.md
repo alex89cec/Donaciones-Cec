@@ -40,6 +40,21 @@ Cuando terminás, tocás **“Descargar data.json”** y/o **“Descargar meta.j
 reemplazás esos archivos en el repo (o me los pasás y los subo yo). Tus cambios
 quedan como borrador en el navegador por si cerrás sin querer.
 
+### 🔒 Contraseña del panel
+
+El panel está protegido con una contraseña (pantalla de ingreso). La contraseña
+por defecto es **`streaming.liceo.2026`** — **cambiala** por una tuya.
+
+Para cambiarla: entrá al panel, tocá **“🔑 Contraseña”** (arriba a la derecha),
+escribí la nueva y se descarga un archivo **`auth.json`**. Subilo al repo
+(reemplazando el que está) y desde ese momento queda activa la nueva.
+
+> Nota: la web es un sitio estático, así que esta contraseña sirve para
+> **ocultar el panel** de curiosos, no como seguridad de nivel bancario. De
+> todos modos, aunque alguien entrara, **no puede modificar la web publicada**:
+> el panel solo genera archivos que hay que subir al repositorio, y para eso se
+> necesita acceso a GitHub.
+
 > ¿Preferís editar a mano? También podés abrir `data.json` y `meta.json` con un
 > editor de texto y cambiar los valores directamente.
 
