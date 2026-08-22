@@ -347,7 +347,7 @@
         });
         form.reset();
         msg.className = "donform__msg ok";
-        msg.textContent = "¡Gracias! Tu saludo aparecerá cuando confirmemos tu aporte. 💛";
+        msg.textContent = "¡Gracias por tu aporte! Tu saludo va a salir en el próximo stream 💛";
       } catch (err) {
         console.error(err);
         msg.className = "donform__msg err";
