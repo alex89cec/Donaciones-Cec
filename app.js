@@ -267,9 +267,8 @@
     if (!donaciones.length) { sec.hidden = true; return; }
     sec.hidden = false;
     $("#muro-list").innerHTML = donaciones.map((d) => {
-      const monto = Number(d.monto) > 0 ? `<span class="donor__amount">${pesos(d.monto)}</span>` : "";
       const msg = d.mensaje ? `<div class="donor__msg">“${esc(d.mensaje)}”</div>` : "";
-      return `<div class="donor"><div class="donor__top"><span class="donor__name">${esc(d.nombre)}</span>${monto}</div>${msg}</div>`;
+      return `<div class="donor"><div class="donor__top"><span class="donor__name">${esc(d.nombre)}</span></div>${msg}</div>`;
     }).join("");
   }
 
